@@ -1,0 +1,246 @@
+\chapter{提案手法}
+
+\section{End-to-Endマスク最適化による時系列グラフ予測の説明可能AI}
+本章では，時系列異種混合グラフに基づく予測モデルに対して，最適化ベースのマスク学習により説明を与える枠組みを提案する。
+提案法は，(i) 直列構造を持つ予測器（GNN $\rightarrow$ LSTM $\rightarrow$ Attention $\rightarrow$ MLP）を end-to-end に保ったまま，
+(ii) 予測をできるだけ維持しつつ入力（特徴量・エッジ）を疎に残すマスクを学習し，
+(iii) 得られたマスクの大きさ（重要度）に加えて符号付き影響度（スコアを上げる／下げる方向）を算出し，
+(iv) 月次で比較可能な形で要因を提示することを目的とする。
+
+以降，説明対象はインフルエンサーノード $v$ とし（第3章），「どの月のどの特徴量・どのエッジが予測に寄与したか」を抽出する。
+
+\subsection{問題設定と予測モデル}
+時刻（本研究では月）$t\in\{1,\dots,T\}$ におけるグラフを $G_t=(V,E_t)$，ノード特徴を $X_t\in\mathbb{R}^{|V|\times F}$ とする。
+対象ノード $v\in V$ に対して，モデルは将来のスコア（影響力など）$\hat{y}_v$ を出力する。
+
+本研究の予測器 $f_\Theta$ は，(i) 特徴射影，(ii) GCN による構造混合，(iii) LSTM による時系列混合，
+(iv) Attention による重み付け集約，(v) MLP によるスカラー出力からなる直列構造である：
+\begin{align}
+P_t &= \phi(X_t) \in\mathbb{R}^{|V|\times d_p},\label{eq:pred_proj}\\
+H_t &= \mathrm{GCN}_{\theta}(P_t, E_t)\in\mathbb{R}^{|V|\times d_g},\label{eq:pred_gcn}\\
+s_{v,1:T} &= \big[H_1[v],\dots,H_T[v]\big]\in\mathbb{R}^{T\times d_g},\label{eq:pred_stack}\\
+\{h_{v,t}\}_{t=1}^T &= \mathrm{LSTM}_{\psi}(s_{v,1:T}),\label{eq:pred_lstm}\\
+\alpha_{v,t} &= \mathrm{softmax}_{t}\!\Big(a^\top\tanh(W_a h_{v,t}+b_a)\Big),\qquad
+c_v = \sum_{t=1}^T \alpha_{v,t} h_{v,t},\label{eq:pred_attn}\\
+\hat{y}_v &= \mathrm{softplus}\!\Big(\mathrm{MLP}_{\omega}(c_v)\Big).\label{eq:pred_out}
+\end{align}
+ここで $\Theta=\{\theta,\psi,\omega,\phi,a,W_a,b_a\}$ は学習可能パラメータである。
+以降，元の予測を
+\[
+\hat{y}_v^{(0)} := f_\Theta(\{(G_t,X_t)\}_{t=1}^{T}; v)
+\]
+と書く。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\linewidth]{figures/lstm-attention-mlp.png}
+    \caption{本研究で扱う直列予測器の概観（GNN $\rightarrow$ LSTM $\rightarrow$ Attention $\rightarrow$ MLP）}
+    \label{fig:serial_predictor_overview}
+\end{figure}
+
+\subsection{説明対象の時刻選択（効く月だけ説明する）}
+\label{subsec:sensitivity_select}
+全時刻に対して説明（マスク最適化）を実行すると計算コストが大きい。
+そこで本研究では，説明対象時刻 $\mathcal{S}\subset\{1,\dots,T\}$ を事前に選別する。
+
+対象ノード $v$ の時系列埋め込み $s_{v,1:T}$ に対して，「時刻 $t$ をドロップしたときの予測変化」を測る。
+具体的に，$t$ の埋め込みのみをゼロ化した系列 $s'_{v,1:T}$ を
+\begin{align}
+s'_{v,\tau}=
+\begin{cases}
+0 & (\tau=t),\\
+s_{v,\tau}&(\tau\neq t),
+\end{cases}
+\end{align}
+とし，それに基づく予測を
+\begin{align}
+\hat{y}_{v,\setminus t} := f_\Theta\big(s'_{v,1:T};v\big)
+\end{align}
+と定義する。
+そのときの変化量を
+\begin{align}
+\Delta_t := \big|\hat{y}_v^{(0)}-\hat{y}_{v,\setminus t}\big|
+\end{align}
+とする。
+Attention 重み $\alpha_{v,t}$ が得られる場合は，
+\begin{align}
+\mathrm{score}_t := \alpha_{v,t}\cdot \Delta_t
+\end{align}
+として上位 $K$ 個を $\mathcal{S}$ とする（$\alpha$ を用いない場合は $\Delta_t$ のみで選択する）。
+
+\subsection{End-to-End Mask Optimization（MaskOpt）}
+\label{subsec:maskopt}
+選ばれた時刻 $\tau\in\mathcal{S}$ ごとに，$\tau$ の入力グラフおよび特徴にのみマスクを掛け，
+最終出力 $\hat{y}_v$ を end-to-end に維持するようにマスクを最適化する。
+本研究の立場では，教師ラベルを当てることよりも，元の予測 $\hat{y}_v^{(0)}$ をできるだけ保ちながら入力を簡潔化することを優先し，
+「予測に寄与する要素をコンパクトに抽出する」ことを説明の目的とする。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.85\linewidth]{figures/mask_optimization.png}
+    \caption{MaskOpt の概念図（予測を維持しつつ特徴量・エッジを疎に残すマスクを最適化する）}
+    \label{fig:maskopt_concept}
+\end{figure}
+
+\paragraph{局所説明のための部分グラフ化}
+計算量を抑えるため，時刻 $\tau$ における $k$-hop 部分グラフ $G_\tau^{(k)}$ を抽出する（ノード集合 $V_\tau^{(k)}$）。
+さらにエッジマスクは対象ノード $v$ に incident なエッジ集合 $\mathcal{I}_\tau$ のみに限定し，マスクパラメータ数を削減する。
+
+\paragraph{マスクと適用}
+特徴マスク $m_x\in(0,1)^F$，エッジマスク $m_e\in(0,1)^{|\mathcal{I}_\tau|}$ を導入し，時刻 $\tau$ にのみ適用する。
+
+特徴に関しては，対象ノード $v$ の行のみをゲートする（target-only）：
+\begin{align}
+X'_\tau[u,:]=
+\begin{cases}
+X_\tau[v,:]\odot m_x & (u=v),\\
+X_\tau[u,:] & (u\neq v),
+\end{cases}
+\label{eq:apply_feat_mask}
+\end{align}
+ここで $\odot$ は要素ごとの積を表す。
+
+エッジに関しては，incident 辺のみをゲートし，それ以外は固定で $1$ とする（incident-only）：
+\begin{align}
+w_\tau(e)=
+\begin{cases}
+m_e(e) & (e\in \mathcal{I}_\tau),\\
+1 & (e\notin \mathcal{I}_\tau).
+\end{cases}
+\label{eq:apply_edge_mask}
+\end{align}
+GCN は重み付きメッセージパッシングとして実装されるとし，$\tau$ 以外の時刻はキャッシュした埋め込みを用いて再計算を省略する。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\linewidth]{figures/gcn_concat.png}
+    \caption{時点グラフに対するGNN表現の概念図（各層の出力を連結する実装例）}
+    \label{fig:gcn_concat}
+\end{figure}
+
+\paragraph{最適化目的}
+ゲートはロジット $l_x,l_e$ を用いて $m_x=\sigma(l_x)$，$m_e=\sigma(l_e)$ とパラメータ化し，
+Adam により最適化する。
+本研究では，(i) 予測の維持（忠実性），(ii) マスクの疎性（簡潔性），(iii) 離散化の促進（0/1に近づける），
+および（任意として）(iv) 補集合側が予測を十分変えることを促す項を組み合わせ，次の損失を最小化する：
+\begin{align}
+\mathcal{L}(m_x,m_e)
+&=
+\lambda_{\mathrm{fid}}\underbrace{\big(\hat{y}_v(m_x,m_e)-\hat{y}_v^{(0)}\big)^2}_{\mathcal{L}_{\mathrm{fid}}}
++
+\lambda_{x}\underbrace{\frac{1}{F}\|m_x\|_1}_{\mathcal{L}_{x,\mathrm{size}}}
++
+\lambda_{e}\underbrace{\frac{1}{|\mathcal{I}_\tau|}\|m_e\|_1}_{\mathcal{L}_{e,\mathrm{size}}}
+\nonumber\\
+&\quad+
+\beta_x\underbrace{\frac{1}{F}\sum_{j=1}^F H\big(m_{x,j}\big)}_{\mathcal{L}_{x,\mathrm{ent}}}
++
+\beta_e\underbrace{\frac{1}{|\mathcal{I}_\tau|}\sum_{i=1}^{|\mathcal{I}_\tau|} H\big(m_{e,i}\big)}_{\mathcal{L}_{e,\mathrm{ent}}}
++
+\lambda_{\mathrm{ctr}}\underbrace{\max\!\Big(0,\gamma-\big|\hat{y}_v(1-m_x,1-m_e)-\hat{y}_v^{(0)}\big|\Big)}_{\mathcal{L}_{\mathrm{contrast}}}.
+\label{eq:maskopt_loss}
+\end{align}
+ここで $H(p)=-p\log p-(1-p)\log(1-p)$ は2値エントロピーである。
+$\mathcal{L}_{\mathrm{size}}$ はスパース性を促し，$\mathcal{L}_{\mathrm{ent}}$ はマスクの0/1化を促す。
+$\mathcal{L}_{\mathrm{contrast}}$ は補集合マスクが予測を十分変える（$\ge \gamma$）ことを促すことで，
+自明解（全マスクが1付近）を避ける目的で任意に導入する。
+
+\paragraph{出力（重要度）}
+最適化後のゲート $m_x,m_e$ をそれぞれ特徴重要度・エッジ重要度として用いる。
+ただし $m$ は選択の強さ（重要度）であり，スコアを増加させる／減少させる方向の情報（符号）は持たない。
+そこで次節で，重要要素に対して符号付き影響度を別途推定する。
+
+\subsection{符号付き影響度（Score Impact）の算出}
+\label{subsec:signed_attrib}
+本研究では，最適化で得られた重要度（マスク値）とは別に，one-at-a-time ablation により符号付き影響度を算出する。
+上位重要特徴（または上位重要エッジ）について，1つずつ置換・除去したときのスコア差を計測し，増減方向と大きさを与える。
+
+\paragraph{特徴の符号付き影響度}
+時刻 $\tau$ の説明サンプルに対し，基準ベクトル $b\in\mathbb{R}^F$ を定める。
+本研究では以下のいずれかを採用する（実装では切替可能）：
+\begin{align}
+b =
+\begin{cases}
+\mathrm{mean}_{u\in V} \ X_\tau[u,:] & (\text{full\_graph\_month}),\\
+\mathrm{mean}_{u\in V_\tau^{(k)}} \ X_\tau[u,:] & (\text{explain\_subgraph}),\\
+0 & (\text{target\_only}).
+\end{cases}
+\label{eq:baseline_def}
+\end{align}
+特徴 $j$ のアブレーション入力 $X^{(\setminus j)}_\tau$ を
+\begin{align}
+X^{(\setminus j)}_\tau[v,j]
+=
+(1-\rho)X_\tau[v,j] + \rho b_j
+\label{eq:feat_ablation}
+\end{align}
+で作る（$\rho\in(0,1]$ は強さ，$\rho=1$ で完全置換）。
+そのときの符号付き影響度を
+\begin{align}
+\mathrm{Impact}_x(j)
+:=
+\hat{y}_v^{(0)} - f_\Theta(\dots, X^{(\setminus j)}_\tau, \dots; v)
+\label{eq:feat_impact}
+\end{align}
+と定義する。
+$\mathrm{Impact}_x(j)>0$ は「その特徴を潰すとスコアが下がる」ことを意味し，スコア増加に正寄与したと解釈する。
+
+\paragraph{エッジの符号付き影響度}
+上位 incident 辺 $e=(v,u)$ について，時刻 $\tau$ の隣接を両方向まとめてドロップし，
+\begin{align}
+\mathrm{Impact}_e(e)
+:=
+\hat{y}_v^{(0)} - f_\Theta(\dots, G_\tau\setminus \{(v,u),(u,v)\}, \dots; v)
+\label{eq:edge_impact}
+\end{align}
+で影響を測る。
+$\mathrm{Impact}_e(e)>0$ は，当該接続がスコアを押し上げたことを意味する。
+
+\paragraph{Zero 判定（数値安定化）}
+数値丸めにより 0 に見える問題を避けるため，絶対閾値 $\epsilon_{\mathrm{abs}}$ と相対閾値 $\epsilon_{\mathrm{rel}}$ を用い，
+\begin{align}
+|\mathrm{Impact}|\le \max(\epsilon_{\mathrm{abs}}, \epsilon_{\mathrm{rel}}|\hat{y}_v^{(0)}|)
+\end{align}
+なら Zero と判定する（実装では特徴・エッジで別の $\epsilon$ を指定可能）。
+
+\subsection{GNNExplainerとの比較}
+\label{subsec:compare_gnnexplainer}
+本節では，先行のGNNExplainer \cite{Ying2019GNNExplainer} と，本研究の MaskOpt の相違点を整理する。
+比較図を図\ref{fig:gnn_vs_maskopt}に示す。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\linewidth]{figures/gnn_vs_mine.png}
+    \caption{GNNExplainer 系の説明と，本研究の MaskOpt の位置付け（直列予測器に対するend-to-end説明）}
+    \label{fig:gnn_vs_maskopt}
+\end{figure}
+
+GNNExplainer は，説明対象インスタンスごとにサブグラフ（および特徴）を選び，
+予測と説明の相互情報量を最大化する形で定式化される：
+\begin{align}
+\max_{G_S,\,X_S}\ I\big(Y;\ (G_S,X_S)\big).
+\end{align}
+実装上は，連続マスク $M$ を学習し，（タスクに応じて）負の対数尤度（分類なら交差エントロピー等）に
+スパース・エントロピー正則化を加えて最適化する形となる \cite{Ying2019GNNExplainer}：
+\begin{align}
+\min_{M}\ 
+\mathcal{L}_{\mathrm{task}}\!\Big(f_\Theta(G\odot M, X);\ y\Big)
++\lambda \|M\|_1 + \beta \sum_i H(M_i).
+\label{eq:gnnexplainer_like}
+\end{align}
+
+これに対し本研究の MaskOpt は，
+(i) 直列の時系列モデル（GCN$\rightarrow$LSTM$\rightarrow$Attention$\rightarrow$MLP）を end-to-end に保ったまま，
+(ii) ラベルを当てるのではなく元の予測 $\hat{y}_v^{(0)}$ を維持する（忠実性）ことを主目的として
+式\eqref{eq:maskopt_loss} を最適化する点が異なる。
+また (iii) 時刻 $\tau$ のみにマスクを掛け，他時刻はキャッシュを活用することで，
+「どの月の情報が効いたか」を月別に分解しやすい。
+さらに (iv) 重要度（ゲート値）とは別に，式\eqref{eq:feat_impact}，式\eqref{eq:edge_impact} により
+符号付き影響度（増減方向）を推定し，特徴量とエッジの双方について月次比較を可能にする点が本研究の狙いである。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.85\linewidth]{figures/thesis_position.png}
+    \caption{本研究の位置付け（予測モデルと説明手法の統合，および月次比較可能な寄与分析）}
+    \label{fig:thesis_position}
+\end{figure}

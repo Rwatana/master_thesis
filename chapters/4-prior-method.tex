@@ -1,0 +1,160 @@
+\chapter{先行手法}
+本章では，本研究の基盤となる2つの先行手法を整理する。
+第1に，将来有望なインフルエンサーを時系列異種混合グラフからランキングする予測モデル InfluencerRank \cite{Kim2023InfluencerRank} を述べる。
+第2に，GNNの予測根拠をグラフ構造と特徴量の両面から説明する GNNExplainer \cite{Ying2019GNNExplainer} を述べる。
+本研究は，InfluencerRank 型の直列モデル（GNN $\rightarrow$ RNN/Attention $\rightarrow$ MLP）に対して，GNNExplainer 系の最適化ベース説明を拡張適用する立場である。
+
+\section{インフルエンサー予測モデル: InfluencerRank}
+InfluencerRank \cite{Kim2023InfluencerRank} は，インフルエンサーマーケティングにおける「将来伸長が見込まれるインフルエンサー」を発見することを目的に，
+投稿コンテンツと関係性を異種混合グラフとして表現し，その時系列変化を学習してランキングするモデルである。
+モデル全体像を図\ref{fig:influencer_rank_overview}に示す。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\linewidth]{figures/influencer_rank_overview.png}
+    \caption{InfluencerRank のモデル概観（異種混合グラフ $\rightarrow$ GNN $\rightarrow$ 時系列統合 $\rightarrow$ スコア推定）}
+    \label{fig:influencer_rank_overview}
+\end{figure}
+
+\subsection{問題設定と影響力指標}
+InfluencerRank は，インフルエンサー $u$ の時点 $t$ における影響力をエンゲージメント率として定義し，この将来値が高い順にインフルエンサーを順位付けする問題として定式化する \cite{Kim2023InfluencerRank}。
+原論文では，時点 $t$ のエンゲージメント率を
+\[
+E_{u}^{t} = \frac{\ell_{u}^{t}}{f_{u}^{t}}
+\]
+とし，$f_{u}^{t}$ はフォロワー数，$\ell_{u}^{t}$ は当該期間における平均エンゲージメント（原論文では平均いいね数）である \cite{Kim2023InfluencerRank}。
+一方，本研究では問題設定（第3章）にて，いいね数とコメント数の双方を反映した指標を採用している。
+以降の説明では，原論文の設計思想（エンゲージメント率を目的変数としてランキングする）を中心に述べ，指標の具体は第3章の定義に従う。
+
+\subsection{異種混合グラフによるマルチモーダル統合}
+SNS上の投稿は，数値特徴だけでなく画像・テキストなどのコンテンツ情報を含み，さらにハッシュタグやメンションにより他者・概念と結びつく。
+InfluencerRank は，これら多様な情報を統合的に扱うため，異種混合グラフ（heterogeneous graph）としてモデリングする \cite{Kim2023InfluencerRank}。
+一般に，異種混合グラフではノード集合 $V$ とエッジ集合 $E$ が，ノード種別・関係種別により区別される。
+
+原論文では，インフルエンサー（Influencer），画像オブジェクト（Image Object），ハッシュタグ（Hashtag），ユーザータグ（User Tag）などをノードとして扱い，
+インフルエンサーと各要素の共起や付与関係をエッジとして表現することで，投稿内容と行動・関係性を同一のグラフ上に埋め込む \cite{Kim2023InfluencerRank}。
+図\ref{fig:edge_connection_example}は，投稿内容に基づくノード間接続の例を示す。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.55\linewidth]{figures/edge_connection.png}
+    \caption{投稿要素（例：ハッシュタグ，ユーザータグ，画像オブジェクト）に基づくエッジ形成の例}
+    \label{fig:edge_connection_example}
+\end{figure}
+
+本研究においても，対象ノードはインフルエンサーノードであり（第3章），それ以外のノードはインフルエンサーのコンテンツや関係性を表す媒介として位置付ける。
+図\ref{fig:influencer_node_example}および図\ref{fig:other_nodes_example}は，インフルエンサーとその他ノードの概念図を示す。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.55\linewidth]{figures/influencer_node.png}
+    \caption{インフルエンサーノードの概念図（コンテンツ・行動特徴と関係性を持つ）}
+    \label{fig:influencer_node_example}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.55\linewidth]{figures/other_nodes.png}
+    \caption{非インフルエンサーノード（例：ハッシュタグ，ユーザータグ，画像オブジェクト）の概念図}
+    \label{fig:other_nodes_example}
+\end{figure}
+
+\subsection{空間表現学習: 各時点グラフに対するGNN適用}
+時点 $t$（例：月）ごとに構築した異種混合グラフ $G_t=(V_t,E_t)$ と特徴行列 $X_t$ に対し，
+GNNを適用してノード表現を得る。
+同種グラフに対する標準的GCNの更新式は第2章で述べた通りであり，
+InfluencerRank では，各時点グラフをGNNでエンコードして得たノード表現を時系列モデルへ入力する \cite{Kim2023InfluencerRank}。
+記号として，時点 $t$ のGNN出力（各ノードの埋め込み）を $R_t$ と書く。
+
+\subsection{時系列統合: GRUと時間注意機構}
+InfluencerRank は，複数時点にわたるノード表現列 $\{R_{t-T+1},\dots,R_t\}$ を再帰モデルで統合し，将来の影響力を推定する \cite{Kim2023InfluencerRank}。
+原論文では，時系列統合にゲート付き再帰ユニット（GRU）を採用し，さらに時間注意機構により重要な時点を強調する構成を採る。
+直観的には，バズやコラボなどが生じた特定月が将来の影響力に強く影響するため，全時点を等価に扱うのではなく重み付けして集約する。
+
+具体的には，各時点の隠れ状態を $H_t$ とし，GRUにより
+\[
+H_t = \mathrm{GRU}(R_t, H_{t-1})
+\]
+で更新する。
+続いて時間注意機構により，各時点の重要度 $\alpha_t$ を推定し，
+\[
+\alpha_t = \frac{\exp(\eta_t)}{\sum_{\tau}\exp(\eta_\tau)}, \qquad
+C = \sum_t \alpha_t H_t
+\]
+のように重み付き和 $C$ を得る（$\eta_t$ は $H_t$ から計算されるスコア）\cite{Kim2023InfluencerRank}。
+最後に，全結合層（MLP）により将来スコアを出力し，このスコアに基づいてインフルエンサーをランキングする。
+
+なお，原論文ではGRUとLSTMの比較も行われ，性能差が大きくないことを報告している \cite{Kim2023InfluencerRank}。
+本研究では，時系列統合モジュールの選択は実装上の設計として扱い，提案手法章で採用設定を明示する。
+
+\subsection{ランキング学習としての最適化}
+InfluencerRank は，回帰ではなくランキングとして問題を捉え，list-wise learning-to-rank の枠組みで最適化する \cite{Kim2023InfluencerRank}。
+原論文では，ランキング予測 $\hat{y}(Z_i)$ と正解順位 $y_i$ の不一致を表す0--1損失を導入し，
+\[
+L_S(\hat{y})=\frac{1}{m}\sum_{i=1}^{m} l(\hat{y}(Z_i), y_i), \qquad
+l(\hat{y}(Z_i), y)=
+\begin{cases}
+1, & \hat{y}(Z_i)\neq y \\
+0, & \hat{y}(Z_i)=y
+\end{cases}
+\]
+の形でランキング学習を記述している \cite{Kim2023InfluencerRank}。
+一方で0--1損失は微分不可能であるため，実装では滑らかな代理損失が必要となる。
+本研究では第3章で定義した ListMLE を学習損失として採用し，ランキング最適化を実装可能な形で行う。
+
+\section{GNNに対する説明可能AI手法: GNNExplainer}
+GNNExplainer \cite{Ying2019GNNExplainer} は，GNNの予測を説明するための代表的手法である。
+GNNはグラフ構造データを扱うため，予測にはノード特徴量とエッジ構造の両方が寄与し得る。
+GNNExplainer は，特定ノードの予測を説明するため，その周囲のサブグラフと特徴量に注目し，説明に必要な要素をマスク最適化で抽出する。
+
+\subsection{説明対象: 構造マスクと特徴マスク}
+GNNExplainer は，以下の2種類のマスクを学習する \cite{Ying2019GNNExplainer}。
+\begin{itemize}
+    \item 構造マスク（エッジマスク）$m_E\in[0,1]^{|E|}$:
+    各エッジが予測に寄与する度合いを表す。値が1に近いほど重要と解釈する。
+    \item 特徴マスク（特徴量マスク）$m_X\in[0,1]^d$:
+    ノード特徴の各次元が予測に寄与する度合いを表す。値が1に近いほど重要と解釈する。
+\end{itemize}
+
+図\ref{fig:gnnexplainer_edge_mask}および図\ref{fig:gnnexplainer_node_mask}は，それぞれエッジマスクと特徴マスクの概念を示す。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.55\linewidth]{figures/edge_mask.png}
+    \caption{GNNExplainerにおけるエッジマスクの概念図}
+    \label{fig:gnnexplainer_edge_mask}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.55\linewidth]{figures/node_mask.png}
+    \caption{GNNExplainerにおける特徴マスクの概念図}
+    \label{fig:gnnexplainer_node_mask}
+\end{figure}
+
+\subsection{マスク最適化}
+マスクを用いると，入力グラフ構造と特徴は要素ごとに抑制される。
+例えば隣接行列（またはエッジ重み行列）を $A$ とすると，マスク後の構造を $A\odot m_E$ と表せる。
+同様に特徴行列 $X$ に対しては $X\odot m_X$ と表せる（$\odot$ は要素ごとの積）。
+GNNExplainer は，元の予測をできるだけ保つ（忠実性）一方で，マスクを疎にする（簡潔性）ことを目的としてマスクを最適化する \cite{Ying2019GNNExplainer}。
+
+目的関数の典型形は，予測保持の損失 $\mathcal{L}_{\mathrm{pred}}$ と疎性正則化を組み合わせた
+\[
+\mathcal{L}
+=
+\mathcal{L}_{\mathrm{pred}}
++
+\lambda_E \lVert m_E\rVert_1
++
+\lambda_X \lVert m_X\rVert_1
+\]
+である。
+ここで $\lambda_E,\lambda_X$ は疎性の強さを制御するハイパーパラメータであり，
+勾配降下法により $\mathcal{L}$ を最小化してマスクを得る。
+得られたマスク値は，どのエッジ・どの特徴が予測に必要だったかを表す重要度として解釈される。
+
+ただし，GNNExplainer が直接与えるのは主に重要度（マスクの大きさ）であり，
+どの要素がスコアを上げる方向に働いたか／下げる方向に働いたかという符号付き影響の解釈や，
+複数時点にまたがる比較可能な集約は自明ではない。
+本研究では，時系列グラフを入力とする直列モデルに対してマスク学習を適用し，
+特徴量とエッジの双方について符号付き影響度を定義して月次で比較可能にする点を提案手法として述べる（第5章）。

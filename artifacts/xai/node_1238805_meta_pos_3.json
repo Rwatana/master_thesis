@@ -1,0 +1,23 @@
+{
+  "orig_pred": 0.04515444487333298,
+  "best_pred": 0.043466389179229736,
+  "best_loss": 0.03682176396250725,
+  "target_node": 1238805,
+  "explain_pos": 3,
+  "T": 11,
+  "feat_dim": 96,
+  "edge_params": 1091,
+  "pred_unmasked": 0.04515444487333298,
+  "pred_masked": 0.043466389179229736,
+  "impact_reference": "unmask",
+  "budget_feat": 10.0,
+  "budget_edge": 20.0,
+  "budget_weight": 1.0,
+  "coeffs": {
+    "edge_size": 0.08,
+    "edge_ent": 0.15,
+    "node_feat_size": 0.02,
+    "node_feat_ent": 0.15
+  },
+  "fid_weight": 2000.0
+}

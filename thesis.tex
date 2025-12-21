@@ -1,0 +1,100 @@
+\documentclass[
+  leqno, % 数式左詰め
+  twoside, % 両開き
+  open=any,
+  numbers=noenddot, % 節番号の末尾に.を付けない
+  headsepline, % ヘッダ線あり
+  footsepline, % フッタ線あり
+]{scrbook}
+\usepackage{luatexja-preset} % 日本語化
+%\usepackage[hiragino-pron]{luatexja-preset} % 日本語化(macOS用)
+\usepackage[main=japanese,english]{babel} % 用語の日本語化
+\makeatletter % 章の表記を変えたい場合はここから
+\renewcommand{\chapterlinesformat}[3]{%
+  \renewcommand*{\thechapter}{{第}\@arabic\c@chapter{章}}
+  \@hangfrom{#2}{#3}%
+}
+\makeatother % ここまでを使う
+\usepackage[ % 
+  bottom=40mm, % 下側の空白の指定
+  margin=30mm, % 左右の空白の指定
+  showframe=false, % 本文の領域を見る場合はtrue
+]{geometry}
+\usepackage{csquotes}
+
+
+\usepackage[%
+  backend=biber,
+  bibencoding=latin1,
+  style=ieee, % ieee, nature, numeric, authoryear いろいろある
+  url=false, % 余計な項目は表示しない
+  isbn=false,
+  doi=false,
+  eprint=false,
+]{biblatex}
+\AtEveryBibitem{\clearfield{note}} % note項目を表示しない
+\addbibresource{papers.bib}
+% \addbibresource{books.bib} % databaseを追加する場合
+
+%%% 必要なpackageの読み込みの例
+\usepackage{graphicx}
+\graphicspath{{./imgs/}}
+\usepackage{pdfpages}
+\usepackage{bm}
+\usepackage[
+  bookmarks=true,%
+  bookmarksnumbered=true,%
+  colorlinks=true,%
+  linkcolor=blue,%
+  citecolor=blue,
+  setpagesize=false]{hyperref}
+\usepackage{amsmath,amssymb}
+\usepackage[fleqn,tbtags]{mathtools} % amsmathの拡張
+\mathtoolsset{showonlyrefs,showmanualtags} % ラベルありの数式のみ番号あり
+\usepackage{bxjalipsum} % ダミーの文書
+\usepackage[math]{blindtext} % ダミーの文書
+\usepackage{indentfirst} % section直後にインデントする
+%%% packageの例の終わり
+
+%%% タイトル
+\subject{2026年度修士論文}
+%%% 説明可能なの後に改行を入れる場合は\\を追加
+\title{マルチモーダルなGNNにおける\\説明可能な影響力予測}
+\subtitle{Influencer Rankアーキテクチャへのmask適用による成長要因の分析手法の検討}
+\author{渡邉 遼真}
+\date{\today}
+\publishers{
+  早稲田大学 先進理工学研究科\\
+  電気・情報生命専攻\\
+  情報学習システム研究室\\
+  指導教員 村田昇\\
+}
+
+%%% 本文
+\begin{document}
+\frontmatter
+\maketitle
+%% 概要書の読み込み
+% \includepdf[pages=-]{abstract.pdf}
+%% ここまで
+\tableofcontents
+
+\mainmatter
+%%% 以下本文の例
+\include{chapters/1-introduction}
+\include{chapters/2-background}
+\include{chapters/3-problem-statement}
+\include{chapters/4-prior-method}
+\include{chapters/5-proposed-method}
+\include{chapters/6-experiments}
+\include{chapters/7-discussion}
+\include{chapters/8-conclusion}
+
+\include{chapters/9-special-thanks}
+
+\backmatter
+\begin{otherlanguage}{english}
+  % babel-japaneseが若干悪さをするので英語にして回避
+  \printbibliography[title=参考文献]
+\end{otherlanguage}
+\end{document}

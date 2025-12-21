@@ -1,0 +1,138 @@
+\chapter{前提知識}
+本研究で扱う課題は、(i) グラフ構造（ユーザー間関係や投稿内容の関係性）、(ii) 時系列変化（成長・バズ・関係性の変動）、(iii) 深層学習モデルの説明可能性（XAI）という複数要素が同時に現れる点に特徴がある。
+本章では、提案手法の理解に必要な基礎として、グラフニューラルネットワーク、時系列モデルと注意機構、説明可能AIの代表的枠組み、ならびに評価指標を整理する。
+
+\section{グラフニューラルネットワーク（GNN）}
+\subsection{グラフ表現}
+グラフは $G=(V,E)$ と表し、$V$ はノード集合、$E$ はエッジ集合である。
+ノード数を $n=|V|$ とすると、隣接行列 $A\in\{0,1\}^{n\times n}$ は
+$(i,j)\in E$ のとき $A_{ij}=1$（それ以外は0）で定義される。
+各ノード $v$ は特徴ベクトルを持ち、特徴行列を $X\in\mathbb{R}^{n\times d}$ とする。
+
+本研究の対象では、インフルエンサー・一般ユーザー・ハッシュタグ・画像オブジェクト等の異種ノードが存在し、
+またフォロー・メンション・共起など複数種類の関係が現れるため、グラフは一般に異種（heterogeneous）である。
+前提知識として本節では、まず標準的な同種グラフ（単一関係種別）を想定したGNNを述べ、異種性や複数関係種別の扱いは後述（第4章および第5章）で整理する。
+なおSNSでは有向関係が現れることが多いが、本章では説明の簡潔化のため隣接行列 $A$ による表現を用い、有向性の影響は後段で補足する。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.55\linewidth]{figures/heterogenous_graph.png}
+    \caption{異種混合グラフの例（ノード種別・関係種別を含む）}
+    \label{fig:hetero_graph_bg}
+\end{figure}
+
+\subsection{GCNによる近傍集約}
+GNNの基本的な考え方は、各層で近傍ノードの情報を集約し、変換して次層の表現を得ることである。
+代表例として、Kipf \& Welling によるGraph Convolutional Network（GCN）は、層 $l$ のノード表現
+$H^{(l)}\in\mathbb{R}^{n\times d_l}$ から次層 $H^{(l+1)}$ を次式で更新する \cite{kipf2017gcn}：
+\begin{align}
+\tilde{A} &= A + I,\quad \tilde{D}_{ii} = \sum_j \tilde{A}_{ij}, \\
+\hat{A} &= \tilde{D}^{-\frac{1}{2}}\tilde{A}\tilde{D}^{-\frac{1}{2}}, \\
+H^{(l+1)} &= \sigma\!\left(\hat{A} H^{(l)} W^{(l)}\right).
+\end{align}
+ここで、$I$ は単位行列、$\tilde{D}$ は次数行列、$W^{(l)}$ は学習可能パラメータ、
+$\sigma(\cdot)$ は非線形活性化関数（例：ReLU）である。通常、入力特徴を $H^{(0)}=X$ とおくことで、
+各層の更新によりグラフ構造を反映した表現を得る。
+この更新により、ノードは自身と近傍から情報を取り込み、グラフ構造を反映した表現を獲得できる。
+
+なお、GCNはGNNの一例であり、より一般的にはメッセージパッシングとして統一的に理解できる \cite{gilmer2017mpnn}。
+本研究では、各時点で構築したグラフに対してGNN（GCN）を適用し、時点ごとの空間的（構造的）表現を得る。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.55\linewidth]{figures/gcn.png}
+    \caption{GCNによる近傍集約の概念図}
+    \label{fig:gcn_bg}
+\end{figure}
+
+\section{時系列情報の処理と注意機構}
+\subsection{時系列データの統合（RNN/LSTM）}
+インフルエンサーの影響力は時間とともに変化するため、単一時点のグラフ表現だけでなく、
+複数時点の情報を統合する必要がある。
+時点 $t$ におけるGNNの出力（ノード表現）を $R_t$ とすると、
+再帰型ニューラルネットワーク（RNN）により時系列方向へ統合し、隠れ状態 $S_t$ を更新する：
+\begin{align}
+S_t = \mathrm{RNN}(R_t, S_{t-1}).
+\end{align}
+
+RNNには複数の実装があり、長期依存を扱うためにLSTM \cite{hochreiter1997lstm} や
+GRU \cite{cho2014gru} が用いられることが多い。
+本研究では時系列統合にLSTMを採用する。
+また、InfluencerRank型モデルはGNNで得た各時点表現を再帰モデルと注意機構で統合し、最終的に将来スコアを推定する（詳細は第4章および第5章で述べる）。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.85\linewidth]{figures/model_flow.png}
+    \caption{時系列グラフ処理の流れ（各時点：GNN、時系列統合：RNN/LSTM、重要時点の強調：Attention）}
+    \label{fig:model_flow}
+\end{figure}
+
+\subsection{注意機構（Temporal Attention）}
+全ての時点が予測へ等しく寄与するとは限らない。
+例えば、特定月の急成長やバズ、コラボ関係の変化が将来スコアに強く影響することがある。
+そこで、各時点の隠れ状態 $S_t$ に対して重み $\alpha_t$ を学習し、重要な時点を強調する注意機構を用いる \cite{bahdanau2015attention}。
+一般的な定式化の一例として、
+\begin{align}
+e_t &= v_a^\top \tanh(W_a S_t + b_a), \\
+\alpha_t &= \frac{\exp(e_t)}{\sum_{\tau=1}^{T}\exp(e_\tau)}, \\
+S_{\mathrm{final}} &= \sum_{t=1}^{T} \alpha_t S_t
+\end{align}
+を用いることで、時系列全体から予測に有用な情報を集約できる。
+ここで $W_a, v_a, b_a$ は学習可能パラメータである。
+
+\section{説明可能AI（XAI）}
+\subsection{グラフ予測における説明の考え方}
+深層学習は高い表現能力を持つ一方で、予測根拠がブラックボックス化しやすい。
+マーケティングの意思決定では「誰が伸びるか」だけでなく「なぜそう判断したか」が重要であるため、
+予測モデルに対する説明可能性の付与が求められる \cite{Gunning2019,Arrieta2020XAI}。
+
+グラフ予測に対する説明は、大きく
+(1) 特徴量（ノード属性）の寄与と、
+(2) 構造（どのエッジ／どの部分グラフが重要か）
+の二面から捉えられる。
+本研究はこの両者を同一枠組みで扱い、さらに時系列（どの月が効いたか）まで比較可能にすることを目指す。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.55\linewidth]{figures/graph_xai.png}
+    \caption{グラフ予測における説明の対象：特徴量・構造・時系列}
+    \label{fig:graph_xai}
+\end{figure}
+
+\subsection{マスク最適化に基づく説明（GNNExplainer系）}
+本研究では、最適化に基づいて予測をできるだけ維持しつつ、入力（特徴量・エッジ）を疎に残すマスクを学習し、予測に寄与する要素をコンパクトに抽出するタイプの説明を採用する。
+代表例であるGNNExplainerは、エッジマスク $m_E\in[0,1]^{|E|}$ と特徴マスク $m_X\in[0,1]^d$ を導入し、
+マスク後の入力でも予測をできるだけ保つ一方で、マスクを疎にするよう学習する \cite{Ying2019GNNExplainer}。
+
+直観的には、
+\begin{itemize}
+  \item 忠実性（fidelity）: マスク後も予測が大きく変わらない（説明が予測に整合する）
+  \item 簡潔性（sparsity）: 少数の特徴・少数のエッジで説明できる
+\end{itemize}
+を両立するように、マスクを最適化する。
+時系列グラフモデルへの適用方法、ならびに特徴量・エッジの符号付き影響度の定義と計算は第5章で詳述する（関連する先行枠組みの整理は第4章で述べる）。
+
+\section{評価指標}
+本研究は将来有望なインフルエンサーの順位付けを目的とするため、
+回帰誤差だけでなくランキング指標で性能を評価する。
+本節では代表的な指標としてNDCGとRBPを述べる。
+
+\subsection{NDCG（Normalized Discounted Cumulative Gain）}
+NDCGは、上位に関連度の高いアイテムが配置されるほど高く評価する指標である \cite{jarvelin2002ndcg}。
+順位 $i$ の関連度を $rel(i)$ とし、ゲイン関数 $g(\cdot)$ を用いると、
+\begin{align}
+DCG@k &= \sum_{i=1}^{k}\frac{g(rel(i))}{\log_2(i+1)}, \\
+NDCG@k &= \frac{DCG@k}{IDCG@k}
+\end{align}
+と定義される。ここで $IDCG@k$ は理想順位における $DCG@k$ である。
+$g(rel)=rel$ あるいは $g(rel)=2^{rel}-1$ など複数の流儀があるため、
+本研究で採用する関連度設計とゲイン関数は実験設定（第6章）で明記する。
+
+\subsection{RBP（Rank-biased Precision）}
+RBPは、ユーザが上位から確率 $p$ で閲覧を継続するという行動モデルに基づく指標である \cite{moffat2008rbp}。
+\begin{align}
+RBP = (1-p)\sum_{i=1}^{N} rel_i\, p^{i-1}
+\end{align}
+で定義される。ここで $N$ は評価対象のランキング長である。
+$p$ が大きいほど下位順位までを広く評価し、$p$ が小さいほど上位を重視する。
+マーケティングでは上位候補の抽出が重要であるため、本研究でもRBPを用いて上位重視の評価を行う。

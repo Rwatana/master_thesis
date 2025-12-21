@@ -1,0 +1,869 @@
+% $ biblatex auxiliary file $
+% $ biblatex bbl format version 3.3 $
+% Do not modify the above lines!
+%
+% This is an auxiliary file used by the 'biblatex' package.
+% This file may safely be deleted. It will be recreated by
+% biber as required.
+%
+\begingroup
+\makeatletter
+\@ifundefined{ver@biblatex.sty}
+  {\@latex@error
+     {Missing 'biblatex' package}
+     {The bibliography requires the 'biblatex' package.}
+      \aftergroup\endinput}
+  {}
+\endgroup
+
+
+\refsection{0}
+  \datalist[entry]{none/global//global/global/global}
+    \entry{Lou2019}{article}{}{}
+      \name{author}{2}{}{%
+        {{hash=c7c262446d5adae472dac6e0bea2acfb}{%
+           family={Lou},
+           familyi={L\bibinitperiod},
+           given={Chen},
+           giveni={C\bibinitperiod}}}%
+        {{hash=2f3238e4089eefda1284509e036fe3a5}{%
+           family={Yuan},
+           familyi={Y\bibinitperiod},
+           given={Shupei},
+           giveni={S\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {Taylor \& Francis}%
+      }
+      \strng{namehash}{8e38213454046ea315b63ffeaacdcbf0}
+      \strng{fullhash}{8e38213454046ea315b63ffeaacdcbf0}
+      \strng{fullhashraw}{8e38213454046ea315b63ffeaacdcbf0}
+      \strng{bibnamehash}{8e38213454046ea315b63ffeaacdcbf0}
+      \strng{authorbibnamehash}{8e38213454046ea315b63ffeaacdcbf0}
+      \strng{authornamehash}{8e38213454046ea315b63ffeaacdcbf0}
+      \strng{authorfullhash}{8e38213454046ea315b63ffeaacdcbf0}
+      \strng{authorfullhashraw}{8e38213454046ea315b63ffeaacdcbf0}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Journal of Interactive Advertising}
+      \field{number}{1}
+      \field{title}{Influencer marketing: How message value and credibility affect consumer trust of branded content on social media}
+      \field{volume}{19}
+      \field{year}{2019}
+      \field{pages}{58\bibrangedash 73}
+      \range{pages}{16}
+    \endentry
+    \entry{Campbell2020}{article}{}{}
+      \name{author}{2}{}{%
+        {{hash=8844d8529a91231635f23ed2bd5f1d72}{%
+           family={Campbell},
+           familyi={C\bibinitperiod},
+           given={Colin},
+           giveni={C\bibinitperiod}}}%
+        {{hash=ea27e81fda449cd507e761fd8808c352}{%
+           family={Farrell},
+           familyi={F\bibinitperiod},
+           given={Justin\bibnamedelima R},
+           giveni={J\bibinitperiod\bibinitdelim R\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {Taylor \& Francis}%
+      }
+      \strng{namehash}{2dbcd8cf7b206222a1c9c64c12841d91}
+      \strng{fullhash}{2dbcd8cf7b206222a1c9c64c12841d91}
+      \strng{fullhashraw}{2dbcd8cf7b206222a1c9c64c12841d91}
+      \strng{bibnamehash}{2dbcd8cf7b206222a1c9c64c12841d91}
+      \strng{authorbibnamehash}{2dbcd8cf7b206222a1c9c64c12841d91}
+      \strng{authornamehash}{2dbcd8cf7b206222a1c9c64c12841d91}
+      \strng{authorfullhash}{2dbcd8cf7b206222a1c9c64c12841d91}
+      \strng{authorfullhashraw}{2dbcd8cf7b206222a1c9c64c12841d91}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Journal of Current Issues \& Research in Advertising}
+      \field{number}{1}
+      \field{title}{Increasing the impact of consumer research: The case of influencer marketing}
+      \field{volume}{41}
+      \field{year}{2020}
+      \field{pages}{1\bibrangedash 7}
+      \range{pages}{7}
+    \endentry
+    \entry{Hudders2021}{article}{}{}
+      \name{author}{3}{}{%
+        {{hash=975b3686445e849822865ac0b30d602a}{%
+           family={Hudders},
+           familyi={H\bibinitperiod},
+           given={Liselot},
+           giveni={L\bibinitperiod}}}%
+        {{hash=b99109b2f33706a6b145d6892766d04c}{%
+           family={De\bibnamedelima Jans},
+           familyi={D\bibinitperiod\bibinitdelim J\bibinitperiod},
+           given={Steffi},
+           giveni={S\bibinitperiod}}}%
+        {{hash=f8af6f40ceb16af64dcf0a5ddd399793}{%
+           family={De\bibnamedelima Veirman},
+           familyi={D\bibinitperiod\bibinitdelim V\bibinitperiod},
+           given={Marijke},
+           giveni={M\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {Taylor \& Francis}%
+      }
+      \strng{namehash}{c198e070a3a23044ae7e3e1e29ce596c}
+      \strng{fullhash}{7160542aa7491f882451d2a92aee7081}
+      \strng{fullhashraw}{7160542aa7491f882451d2a92aee7081}
+      \strng{bibnamehash}{7160542aa7491f882451d2a92aee7081}
+      \strng{authorbibnamehash}{7160542aa7491f882451d2a92aee7081}
+      \strng{authornamehash}{c198e070a3a23044ae7e3e1e29ce596c}
+      \strng{authorfullhash}{7160542aa7491f882451d2a92aee7081}
+      \strng{authorfullhashraw}{7160542aa7491f882451d2a92aee7081}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{International Journal of Advertising}
+      \field{number}{1}
+      \field{title}{Shedding new light on how influencer marketing works: A prospective overview}
+      \field{volume}{40}
+      \field{year}{2021}
+      \field{pages}{3\bibrangedash 23}
+      \range{pages}{21}
+    \endentry
+    \entry{Haenlein2020}{article}{}{}
+      \name{author}{6}{}{%
+        {{hash=146c7381fa3e25c333d754ee6c0f683b}{%
+           family={Haenlein},
+           familyi={H\bibinitperiod},
+           given={Michael},
+           giveni={M\bibinitperiod}}}%
+        {{hash=74f423dfb0daeeb39cc0268c6d3e4049}{%
+           family={Anadol},
+           familyi={A\bibinitperiod},
+           given={Ertan},
+           giveni={E\bibinitperiod}}}%
+        {{hash=c69150462b565f62d9f0bb310558b88a}{%
+           family={Farnsworth},
+           familyi={F\bibinitperiod},
+           given={Tyler},
+           giveni={T\bibinitperiod}}}%
+        {{hash=dd25a561644b1b5dc5c46264d228f76b}{%
+           family={Hugo},
+           familyi={H\bibinitperiod},
+           given={Harry},
+           giveni={H\bibinitperiod}}}%
+        {{hash=b7d4346b2e2ac75defe54b2f91dacb95}{%
+           family={Hoyer},
+           familyi={H\bibinitperiod},
+           given={Jess},
+           giveni={J\bibinitperiod}}}%
+        {{hash=12e7dbb628fe25ef321930a03899c666}{%
+           family={McCormick},
+           familyi={M\bibinitperiod},
+           given={Patrick},
+           giveni={P\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {SAGE Publications Sage CA: Los Angeles, CA}%
+      }
+      \strng{namehash}{46dd0d3103baa9e8d20539396d3166ca}
+      \strng{fullhash}{713dc022face02fff7e22095094de922}
+      \strng{fullhashraw}{713dc022face02fff7e22095094de922}
+      \strng{bibnamehash}{713dc022face02fff7e22095094de922}
+      \strng{authorbibnamehash}{713dc022face02fff7e22095094de922}
+      \strng{authornamehash}{46dd0d3103baa9e8d20539396d3166ca}
+      \strng{authorfullhash}{713dc022face02fff7e22095094de922}
+      \strng{authorfullhashraw}{713dc022face02fff7e22095094de922}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{California management review}
+      \field{number}{1}
+      \field{title}{Navigating the new era of influencer marketing: How to be successful on Instagram, TikTok, \& Co.}
+      \field{volume}{63}
+      \field{year}{2020}
+      \field{pages}{5\bibrangedash 25}
+      \range{pages}{21}
+    \endentry
+    \entry{Casalo2020}{article}{}{}
+      \name{author}{3}{}{%
+        {{hash=df03b29df93b224817d64a11536ffcd3}{%
+           family={Casal\'{o}},
+           familyi={C\bibinitperiod},
+           given={Luis\bibnamedelima V},
+           giveni={L\bibinitperiod\bibinitdelim V\bibinitperiod}}}%
+        {{hash=248753aa2cff1a6173da26087222354c}{%
+           family={Flavi\'{a}n},
+           familyi={F\bibinitperiod},
+           given={Carlos},
+           giveni={C\bibinitperiod}}}%
+        {{hash=33659646d91c10619a90aea21cf04389}{%
+           family={Ib\'{a}\~{n}ez-S\'{a}nchez},
+           familyi={I\bibinithyphendelim S\bibinitperiod},
+           given={Sergio},
+           giveni={S\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {Elsevier}%
+      }
+      \strng{namehash}{57836e29b842bf9e8c382afbf6dbc7b6}
+      \strng{fullhash}{bcfad31412d48c12aa4b79bc5b8a65e5}
+      \strng{fullhashraw}{bcfad31412d48c12aa4b79bc5b8a65e5}
+      \strng{bibnamehash}{bcfad31412d48c12aa4b79bc5b8a65e5}
+      \strng{authorbibnamehash}{bcfad31412d48c12aa4b79bc5b8a65e5}
+      \strng{authornamehash}{57836e29b842bf9e8c382afbf6dbc7b6}
+      \strng{authorfullhash}{bcfad31412d48c12aa4b79bc5b8a65e5}
+      \strng{authorfullhashraw}{bcfad31412d48c12aa4b79bc5b8a65e5}
+      \field{sortinit}{4}
+      \field{sortinithash}{9381316451d1b9788675a07e972a12a7}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{International Journal of Information Management}
+      \field{title}{Influencer marketing: antecendenst and consequences of influencer credibility}
+      \field{volume}{52}
+      \field{year}{2020}
+      \field{pages}{102078}
+      \range{pages}{1}
+    \endentry
+    \entry{Cresci2015}{inproceedings}{}{}
+      \name{author}{5}{}{%
+        {{hash=5f60af874082598ef75dd9b54e389ad3}{%
+           family={Cresci},
+           familyi={C\bibinitperiod},
+           given={Stefano},
+           giveni={S\bibinitperiod}}}%
+        {{hash=4dd5a77d86e8790090ab8859d537d28b}{%
+           family={Di\bibnamedelima Pietro},
+           familyi={D\bibinitperiod\bibinitdelim P\bibinitperiod},
+           given={Roberto},
+           giveni={R\bibinitperiod}}}%
+        {{hash=fe70ab7cc8d2aafa8ea661a18777f151}{%
+           family={Petrocchi},
+           familyi={P\bibinitperiod},
+           given={Marinella},
+           giveni={M\bibinitperiod}}}%
+        {{hash=dc8f4f054f37a19ffb4ef2ad0c165508}{%
+           family={Spognardi},
+           familyi={S\bibinitperiod},
+           given={Angelo},
+           giveni={A\bibinitperiod}}}%
+        {{hash=ecdd805138fc3cbc305e3e6137e30829}{%
+           family={Tesconi},
+           familyi={T\bibinitperiod},
+           given={Maurizio},
+           giveni={M\bibinitperiod}}}%
+      }
+      \list{organization}{1}{%
+        {Springer}%
+      }
+      \strng{namehash}{bac83af340954181745ea89abe9e8065}
+      \strng{fullhash}{3899d2a0d5c4c02a548fba765c70027e}
+      \strng{fullhashraw}{3899d2a0d5c4c02a548fba765c70027e}
+      \strng{bibnamehash}{3899d2a0d5c4c02a548fba765c70027e}
+      \strng{authorbibnamehash}{3899d2a0d5c4c02a548fba765c70027e}
+      \strng{authornamehash}{bac83af340954181745ea89abe9e8065}
+      \strng{authorfullhash}{3899d2a0d5c4c02a548fba765c70027e}
+      \strng{authorfullhashraw}{3899d2a0d5c4c02a548fba765c70027e}
+      \field{sortinit}{5}
+      \field{sortinithash}{20e9b4b0b173788c5dace24730f47d8c}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{booktitle}{Decision and Game Theory for Security: 6th International Conference, GameSec 2015, London, UK, November 4-5, 2015, Proceedings 6}
+      \field{title}{Fame for sale: Efficient detection of fake twitter followers}
+      \field{year}{2015}
+      \field{pages}{19\bibrangedash 32}
+      \range{pages}{14}
+    \endentry
+    \entry{Kim2023InfluencerRank}{inproceedings}{}{}
+      \name{author}{4}{}{%
+        {{hash=1ffd806a7abece5d75d791ca9300a71d}{%
+           family={Kim},
+           familyi={K\bibinitperiod},
+           given={Seungbae},
+           giveni={S\bibinitperiod}}}%
+        {{hash=0614bca997d8dda256588d8367ec4a5a}{%
+           family={Jiang},
+           familyi={J\bibinitperiod},
+           given={Jyun{-}Yu},
+           giveni={J\bibinitperiod}}}%
+        {{hash=5106b06c0fee4146cad76142b294a04a}{%
+           family={Han},
+           familyi={H\bibinitperiod},
+           given={Jinyoung},
+           giveni={J\bibinitperiod}}}%
+        {{hash=f27ec46ccd272a021fd78bdac92dd490}{%
+           family={Wang},
+           familyi={W\bibinitperiod},
+           given={Wei},
+           giveni={W\bibinitperiod}}}%
+      }
+      \strng{namehash}{8964f9f8fad81dcf138d4db5bb5f2f77}
+      \strng{fullhash}{ac295c8896a66338d92bf567fe84a543}
+      \strng{fullhashraw}{ac295c8896a66338d92bf567fe84a543}
+      \strng{bibnamehash}{ac295c8896a66338d92bf567fe84a543}
+      \strng{authorbibnamehash}{ac295c8896a66338d92bf567fe84a543}
+      \strng{authornamehash}{8964f9f8fad81dcf138d4db5bb5f2f77}
+      \strng{authorfullhash}{ac295c8896a66338d92bf567fe84a543}
+      \strng{authorfullhashraw}{ac295c8896a66338d92bf567fe84a543}
+      \field{sortinit}{6}
+      \field{sortinithash}{b33bc299efb3c36abec520a4c896a66d}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{booktitle}{Proceedings of the International AAAI Conference on Web and Social Media}
+      \field{number}{1}
+      \field{title}{InfluencerRank: Discovering Effective Influencers via Graph Convolutional Attentive Recurrent Neural Networks}
+      \field{volume}{17}
+      \field{year}{2023}
+      \field{pages}{482\bibrangedash 493}
+      \range{pages}{12}
+      \verb{doi}
+      \verb 10.1609/icwsm.v17i1.22162
+      \endverb
+      \verb{urlraw}
+      \verb https://ojs.aaai.org/index.php/ICWSM/article/view/22162
+      \endverb
+      \verb{url}
+      \verb https://ojs.aaai.org/index.php/ICWSM/article/view/22162
+      \endverb
+    \endentry
+    \entry{Gunning2019}{article}{}{}
+      \name{author}{2}{}{%
+        {{hash=25d2cc74dc187d8b48d08bbdae1064da}{%
+           family={Gunning},
+           familyi={G\bibinitperiod},
+           given={David},
+           giveni={D\bibinitperiod}}}%
+        {{hash=43c16e0c51bc5bcf1dcb70c83fb76987}{%
+           family={Aha},
+           familyi={A\bibinitperiod},
+           given={David},
+           giveni={D\bibinitperiod}}}%
+      }
+      \strng{namehash}{44ad95f3f5f6e2f55e71bc971670de68}
+      \strng{fullhash}{44ad95f3f5f6e2f55e71bc971670de68}
+      \strng{fullhashraw}{44ad95f3f5f6e2f55e71bc971670de68}
+      \strng{bibnamehash}{44ad95f3f5f6e2f55e71bc971670de68}
+      \strng{authorbibnamehash}{44ad95f3f5f6e2f55e71bc971670de68}
+      \strng{authornamehash}{44ad95f3f5f6e2f55e71bc971670de68}
+      \strng{authorfullhash}{44ad95f3f5f6e2f55e71bc971670de68}
+      \strng{authorfullhashraw}{44ad95f3f5f6e2f55e71bc971670de68}
+      \field{sortinit}{7}
+      \field{sortinithash}{108d0be1b1bee9773a1173443802c0a3}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{AI Magazine}
+      \field{number}{2}
+      \field{title}{DARPA's explainable artificial intelligence (XAI) program}
+      \field{volume}{40}
+      \field{year}{2019}
+      \field{pages}{44\bibrangedash 58}
+      \range{pages}{15}
+    \endentry
+    \entry{Arrieta2020XAI}{article}{}{}
+      \name{author}{12}{}{%
+        {{hash=94bf5c37ae25e1a4f902c67f8af0647b}{%
+           family={Arrieta},
+           familyi={A\bibinitperiod},
+           given={Alejandro\bibnamedelima Barredo},
+           giveni={A\bibinitperiod\bibinitdelim B\bibinitperiod}}}%
+        {{hash=f2f49e7916926b46a6555cf86c18c919}{%
+           family={D\'{\i}az-Rodr\'{\i}guez},
+           familyi={D\bibinithyphendelim R\bibinitperiod},
+           given={Natalia},
+           giveni={N\bibinitperiod}}}%
+        {{hash=9af0792c82515e88f0d30221b55f31ba}{%
+           family={Ser},
+           familyi={S\bibinitperiod},
+           given={Javier\bibnamedelima Del},
+           giveni={J\bibinitperiod\bibinitdelim D\bibinitperiod}}}%
+        {{hash=eee76618bbe2267980002ac15fc73c9b}{%
+           family={Bennetot},
+           familyi={B\bibinitperiod},
+           given={Adrien},
+           giveni={A\bibinitperiod}}}%
+        {{hash=5d79f34727bcbbd23065a0c111485c1b}{%
+           family={Tabik},
+           familyi={T\bibinitperiod},
+           given={Siham},
+           giveni={S\bibinitperiod}}}%
+        {{hash=43d5191cbb4190664e6dad9d9b27505e}{%
+           family={Barbado},
+           familyi={B\bibinitperiod},
+           given={Alberto},
+           giveni={A\bibinitperiod}}}%
+        {{hash=1691f3ff4356c12149ac4f858ead7e04}{%
+           family={Garc\'{\i}a},
+           familyi={G\bibinitperiod},
+           given={Salvador},
+           giveni={S\bibinitperiod}}}%
+        {{hash=fca9608c0877fec28cda4245d80fad9d}{%
+           family={Gil-L\'{o}pez},
+           familyi={G\bibinithyphendelim L\bibinitperiod},
+           given={Sergio},
+           giveni={S\bibinitperiod}}}%
+        {{hash=381bf37312a71cebeee50fc633f67c46}{%
+           family={Molina},
+           familyi={M\bibinitperiod},
+           given={Daniel},
+           giveni={D\bibinitperiod}}}%
+        {{hash=4ff51a3504ff841d75fa3640a2842bff}{%
+           family={Benjamins},
+           familyi={B\bibinitperiod},
+           given={Richard},
+           giveni={R\bibinitperiod}}}%
+        {{hash=4a0c0821a0200d3f23713aa8ea5278dc}{%
+           family={Chatila},
+           familyi={C\bibinitperiod},
+           given={Raja},
+           giveni={R\bibinitperiod}}}%
+        {{hash=9f81f46436ba77791311a5db20ff5c25}{%
+           family={Herrera},
+           familyi={H\bibinitperiod},
+           given={Francisco},
+           giveni={F\bibinitperiod}}}%
+      }
+      \strng{namehash}{8d645501efd3b19a683a4e9347e9604c}
+      \strng{fullhash}{f333025bf4f0d1c3e9a64e62e8b6725d}
+      \strng{fullhashraw}{f333025bf4f0d1c3e9a64e62e8b6725d}
+      \strng{bibnamehash}{8d645501efd3b19a683a4e9347e9604c}
+      \strng{authorbibnamehash}{8d645501efd3b19a683a4e9347e9604c}
+      \strng{authornamehash}{8d645501efd3b19a683a4e9347e9604c}
+      \strng{authorfullhash}{f333025bf4f0d1c3e9a64e62e8b6725d}
+      \strng{authorfullhashraw}{f333025bf4f0d1c3e9a64e62e8b6725d}
+      \field{sortinit}{7}
+      \field{sortinithash}{108d0be1b1bee9773a1173443802c0a3}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Information Fusion}
+      \field{title}{Explainable Artificial Intelligence ({XAI}): Concepts, taxonomies, opportunities and challenges toward responsible {AI}}
+      \field{volume}{58}
+      \field{year}{2020}
+      \field{pages}{82\bibrangedash 115}
+      \range{pages}{34}
+      \verb{doi}
+      \verb 10.1016/j.inffus.2019.12.012
+      \endverb
+    \endentry
+    \entry{Liao2020QuestioningAI}{inproceedings}{}{}
+      \name{author}{3}{}{%
+        {{hash=49328c4b01cc4fc9689f408d98659792}{%
+           family={Liao},
+           familyi={L\bibinitperiod},
+           given={Q.\bibnamedelimi Vera},
+           giveni={Q\bibinitperiod\bibinitdelim V\bibinitperiod}}}%
+        {{hash=81015144dd9e75707be8e278eb373be5}{%
+           family={Gruen},
+           familyi={G\bibinitperiod},
+           given={Daniel},
+           giveni={D\bibinitperiod}}}%
+        {{hash=4e10dcdeb1032ff07fb3bee9229baab3}{%
+           family={Miller},
+           familyi={M\bibinitperiod},
+           given={Sarah},
+           giveni={S\bibinitperiod}}}%
+      }
+      \strng{namehash}{8d72237da872fc4177a720328cacfdc7}
+      \strng{fullhash}{32331baee2082c235b61d93b8a87fd58}
+      \strng{fullhashraw}{32331baee2082c235b61d93b8a87fd58}
+      \strng{bibnamehash}{32331baee2082c235b61d93b8a87fd58}
+      \strng{authorbibnamehash}{32331baee2082c235b61d93b8a87fd58}
+      \strng{authornamehash}{8d72237da872fc4177a720328cacfdc7}
+      \strng{authorfullhash}{32331baee2082c235b61d93b8a87fd58}
+      \strng{authorfullhashraw}{32331baee2082c235b61d93b8a87fd58}
+      \field{sortinit}{7}
+      \field{sortinithash}{108d0be1b1bee9773a1173443802c0a3}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{booktitle}{Proceedings of the 2020 CHI Conference on Human Factors in Computing Systems}
+      \field{title}{Questioning the AI: Informing Design Practices for Explainable AI User Experiences}
+      \field{year}{2020}
+      \field{pages}{1\bibrangedash 15}
+      \range{pages}{15}
+      \verb{doi}
+      \verb 10.1145/3313831.3376590
+      \endverb
+      \verb{urlraw}
+      \verb https://dl.acm.org/doi/10.1145/3313831.3376590
+      \endverb
+      \verb{url}
+      \verb https://dl.acm.org/doi/10.1145/3313831.3376590
+      \endverb
+    \endentry
+    \entry{Rai2020GlassBox}{article}{}{}
+      \name{author}{1}{}{%
+        {{hash=815824419f0e7a8e7d00e5ee8e40a4ec}{%
+           family={Rai},
+           familyi={R\bibinitperiod},
+           given={Arun},
+           giveni={A\bibinitperiod}}}%
+      }
+      \strng{namehash}{815824419f0e7a8e7d00e5ee8e40a4ec}
+      \strng{fullhash}{815824419f0e7a8e7d00e5ee8e40a4ec}
+      \strng{fullhashraw}{815824419f0e7a8e7d00e5ee8e40a4ec}
+      \strng{bibnamehash}{815824419f0e7a8e7d00e5ee8e40a4ec}
+      \strng{authorbibnamehash}{815824419f0e7a8e7d00e5ee8e40a4ec}
+      \strng{authornamehash}{815824419f0e7a8e7d00e5ee8e40a4ec}
+      \strng{authorfullhash}{815824419f0e7a8e7d00e5ee8e40a4ec}
+      \strng{authorfullhashraw}{815824419f0e7a8e7d00e5ee8e40a4ec}
+      \field{sortinit}{7}
+      \field{sortinithash}{108d0be1b1bee9773a1173443802c0a3}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Journal of the Academy of Marketing Science}
+      \field{number}{1}
+      \field{title}{Explainable AI: from black box to glass box}
+      \field{volume}{48}
+      \field{year}{2020}
+      \field{pages}{137\bibrangedash 141}
+      \range{pages}{5}
+      \verb{doi}
+      \verb 10.1007/s11747-019-00710-5
+      \endverb
+      \verb{urlraw}
+      \verb https://link.springer.com/article/10.1007/s11747-019-00710-5
+      \endverb
+      \verb{url}
+      \verb https://link.springer.com/article/10.1007/s11747-019-00710-5
+      \endverb
+    \endentry
+    \entry{Ying2019GNNExplainer}{inproceedings}{}{}
+      \name{author}{5}{}{%
+        {{hash=5f21207e4436b16d3a0577038244f9b9}{%
+           family={Ying},
+           familyi={Y\bibinitperiod},
+           given={Zhitao},
+           giveni={Z\bibinitperiod}}}%
+        {{hash=e35cf3380bf3b319c3682ac07c4a3e17}{%
+           family={Bourgeois},
+           familyi={B\bibinitperiod},
+           given={Dylan},
+           giveni={D\bibinitperiod}}}%
+        {{hash=adf64964c8c9d5f144d937e11ccf61ba}{%
+           family={You},
+           familyi={Y\bibinitperiod},
+           given={Jiaxuan},
+           giveni={J\bibinitperiod}}}%
+        {{hash=5f1df07c5fbd5a91d0e32b8697082857}{%
+           family={Zitnik},
+           familyi={Z\bibinitperiod},
+           given={Marinka},
+           giveni={M\bibinitperiod}}}%
+        {{hash=900d107125ff0ca84698cb909e4f6c51}{%
+           family={Leskovec},
+           familyi={L\bibinitperiod},
+           given={Jure},
+           giveni={J\bibinitperiod}}}%
+      }
+      \strng{namehash}{608f8f7abd0c8ec13137d8ec5a6de927}
+      \strng{fullhash}{aeb7329f1eb7d06fc4f27ccd3efcdd7a}
+      \strng{fullhashraw}{aeb7329f1eb7d06fc4f27ccd3efcdd7a}
+      \strng{bibnamehash}{aeb7329f1eb7d06fc4f27ccd3efcdd7a}
+      \strng{authorbibnamehash}{aeb7329f1eb7d06fc4f27ccd3efcdd7a}
+      \strng{authornamehash}{608f8f7abd0c8ec13137d8ec5a6de927}
+      \strng{authorfullhash}{aeb7329f1eb7d06fc4f27ccd3efcdd7a}
+      \strng{authorfullhashraw}{aeb7329f1eb7d06fc4f27ccd3efcdd7a}
+      \field{sortinit}{8}
+      \field{sortinithash}{a231b008ebf0ecbe0b4d96dcc159445f}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{booktitle}{Advances in Neural Information Processing Systems}
+      \field{title}{GNNExplainer: Generating Explanations for Graph Neural Networks}
+      \field{volume}{32}
+      \field{year}{2019}
+      \field{pages}{9240\bibrangedash 9251}
+      \range{pages}{12}
+      \verb{doi}
+      \verb 10.5555/3454287.3455116
+      \endverb
+      \verb{urlraw}
+      \verb https://papers.nips.cc/paper/9123-gnnexplainer-generating-explanations-for-graph-neural-networks
+      \endverb
+      \verb{url}
+      \verb https://papers.nips.cc/paper/9123-gnnexplainer-generating-explanations-for-graph-neural-networks
+      \endverb
+    \endentry
+    \entry{kipf2017gcn}{inproceedings}{}{}
+      \name{author}{2}{}{%
+        {{hash=26d8bcbda6afaf96334bf47c8fb88a75}{%
+           family={Kipf},
+           familyi={K\bibinitperiod},
+           given={Thomas\bibnamedelima N.},
+           giveni={T\bibinitperiod\bibinitdelim N\bibinitperiod}}}%
+        {{hash=53d2880ad8047b61cdae2c6b2803e763}{%
+           family={Welling},
+           familyi={W\bibinitperiod},
+           given={Max},
+           giveni={M\bibinitperiod}}}%
+      }
+      \strng{namehash}{e04e5808dc0d0ec733212b81e1f8c78a}
+      \strng{fullhash}{e04e5808dc0d0ec733212b81e1f8c78a}
+      \strng{fullhashraw}{e04e5808dc0d0ec733212b81e1f8c78a}
+      \strng{bibnamehash}{e04e5808dc0d0ec733212b81e1f8c78a}
+      \strng{authorbibnamehash}{e04e5808dc0d0ec733212b81e1f8c78a}
+      \strng{authornamehash}{e04e5808dc0d0ec733212b81e1f8c78a}
+      \strng{authorfullhash}{e04e5808dc0d0ec733212b81e1f8c78a}
+      \strng{authorfullhashraw}{e04e5808dc0d0ec733212b81e1f8c78a}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{booktitle}{International Conference on Learning Representations (ICLR)}
+      \field{title}{Semi-Supervised Classification with Graph Convolutional Networks}
+      \field{year}{2017}
+      \verb{urlraw}
+      \verb https://arxiv.org/abs/1609.02907
+      \endverb
+      \verb{url}
+      \verb https://arxiv.org/abs/1609.02907
+      \endverb
+    \endentry
+    \entry{gilmer2017mpnn}{inproceedings}{}{}
+      \name{author}{5}{}{%
+        {{hash=4f550339f0337905aa634f39e1ba4833}{%
+           family={Gilmer},
+           familyi={G\bibinitperiod},
+           given={Justin},
+           giveni={J\bibinitperiod}}}%
+        {{hash=aa3475bbb938eec3f9f0d7c8d44f1e86}{%
+           family={Schoenholz},
+           familyi={S\bibinitperiod},
+           given={Samuel\bibnamedelima S.},
+           giveni={S\bibinitperiod\bibinitdelim S\bibinitperiod}}}%
+        {{hash=e9632c2c29a574cd09a5a7503be60435}{%
+           family={Riley},
+           familyi={R\bibinitperiod},
+           given={Patrick\bibnamedelima F.},
+           giveni={P\bibinitperiod\bibinitdelim F\bibinitperiod}}}%
+        {{hash=494b568c5dc85ba8f3f409635f9c5f25}{%
+           family={Vinyals},
+           familyi={V\bibinitperiod},
+           given={Oriol},
+           giveni={O\bibinitperiod}}}%
+        {{hash=b2367e57c17225a47853346440e87b35}{%
+           family={Dahl},
+           familyi={D\bibinitperiod},
+           given={George\bibnamedelima E.},
+           giveni={G\bibinitperiod\bibinitdelim E\bibinitperiod}}}%
+      }
+      \strng{namehash}{c654290e16b9e71825428d767650ff2a}
+      \strng{fullhash}{a97dbeb15b563be460fc056e7a076a4b}
+      \strng{fullhashraw}{a97dbeb15b563be460fc056e7a076a4b}
+      \strng{bibnamehash}{a97dbeb15b563be460fc056e7a076a4b}
+      \strng{authorbibnamehash}{a97dbeb15b563be460fc056e7a076a4b}
+      \strng{authornamehash}{c654290e16b9e71825428d767650ff2a}
+      \strng{authorfullhash}{a97dbeb15b563be460fc056e7a076a4b}
+      \strng{authorfullhashraw}{a97dbeb15b563be460fc056e7a076a4b}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{booktitle}{Proceedings of the 34th International Conference on Machine Learning (ICML)}
+      \field{title}{Neural Message Passing for Quantum Chemistry}
+      \field{year}{2017}
+      \verb{urlraw}
+      \verb https://arxiv.org/abs/1704.01212
+      \endverb
+      \verb{url}
+      \verb https://arxiv.org/abs/1704.01212
+      \endverb
+    \endentry
+    \entry{hochreiter1997lstm}{article}{}{}
+      \name{author}{2}{}{%
+        {{hash=41b31e29fb2bdbf9f5c9c1b0d5b3e815}{%
+           family={Hochreiter},
+           familyi={H\bibinitperiod},
+           given={Sepp},
+           giveni={S\bibinitperiod}}}%
+        {{hash=288bdbcfe1b91ad7484d7a24f74f99ed}{%
+           family={Schmidhuber},
+           familyi={S\bibinitperiod},
+           given={J\"{u}rgen},
+           giveni={J\bibinitperiod}}}%
+      }
+      \strng{namehash}{4c2e1e2e1ac91e1df9d4f7b85ebe39b4}
+      \strng{fullhash}{4c2e1e2e1ac91e1df9d4f7b85ebe39b4}
+      \strng{fullhashraw}{4c2e1e2e1ac91e1df9d4f7b85ebe39b4}
+      \strng{bibnamehash}{4c2e1e2e1ac91e1df9d4f7b85ebe39b4}
+      \strng{authorbibnamehash}{4c2e1e2e1ac91e1df9d4f7b85ebe39b4}
+      \strng{authornamehash}{4c2e1e2e1ac91e1df9d4f7b85ebe39b4}
+      \strng{authorfullhash}{4c2e1e2e1ac91e1df9d4f7b85ebe39b4}
+      \strng{authorfullhashraw}{4c2e1e2e1ac91e1df9d4f7b85ebe39b4}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Neural Computation}
+      \field{number}{8}
+      \field{title}{Long Short-Term Memory}
+      \field{volume}{9}
+      \field{year}{1997}
+      \field{pages}{1735\bibrangedash 1780}
+      \range{pages}{46}
+      \verb{doi}
+      \verb 10.1162/neco.1997.9.8.1735
+      \endverb
+    \endentry
+    \entry{cho2014gru}{inproceedings}{}{}
+      \name{author}{4}{}{%
+        {{hash=3da7501a79d9346572c7fd6e41b615df}{%
+           family={Cho},
+           familyi={C\bibinitperiod},
+           given={Kyunghyun},
+           giveni={K\bibinitperiod}}}%
+        {{hash=f0f9993391f26a73b94828bfc6fb784f}{%
+           family={Merri\"{e}nboer},
+           familyi={M\bibinitperiod},
+           given={Bart},
+           giveni={B\bibinitperiod},
+           prefix={van},
+           prefixi={v\bibinitperiod}}}%
+        {{hash=6d80adec79a13a33e73215c5f46f1605}{%
+           family={Bahdanau},
+           familyi={B\bibinitperiod},
+           given={Dzmitry},
+           giveni={D\bibinitperiod}}}%
+        {{hash=40a8e4774982146adc2688546f54efb2}{%
+           family={Bengio},
+           familyi={B\bibinitperiod},
+           given={Yoshua},
+           giveni={Y\bibinitperiod}}}%
+      }
+      \strng{namehash}{9b1920db887fe0d658725c1e606b61f4}
+      \strng{fullhash}{038424e2ec706d199c289b4bd772c10c}
+      \strng{fullhashraw}{038424e2ec706d199c289b4bd772c10c}
+      \strng{bibnamehash}{038424e2ec706d199c289b4bd772c10c}
+      \strng{authorbibnamehash}{038424e2ec706d199c289b4bd772c10c}
+      \strng{authornamehash}{9b1920db887fe0d658725c1e606b61f4}
+      \strng{authorfullhash}{038424e2ec706d199c289b4bd772c10c}
+      \strng{authorfullhashraw}{038424e2ec706d199c289b4bd772c10c}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{booktitle}{Eighth Workshop on Syntax, Semantics and Structure in Statistical Translation (SSST)}
+      \field{title}{On the Properties of Neural Machine Translation: Encoder--Decoder Approaches}
+      \field{year}{2014}
+      \verb{urlraw}
+      \verb https://arxiv.org/abs/1409.1259
+      \endverb
+      \verb{url}
+      \verb https://arxiv.org/abs/1409.1259
+      \endverb
+    \endentry
+    \entry{bahdanau2015attention}{inproceedings}{}{}
+      \name{author}{3}{}{%
+        {{hash=6d80adec79a13a33e73215c5f46f1605}{%
+           family={Bahdanau},
+           familyi={B\bibinitperiod},
+           given={Dzmitry},
+           giveni={D\bibinitperiod}}}%
+        {{hash=3da7501a79d9346572c7fd6e41b615df}{%
+           family={Cho},
+           familyi={C\bibinitperiod},
+           given={Kyunghyun},
+           giveni={K\bibinitperiod}}}%
+        {{hash=40a8e4774982146adc2688546f54efb2}{%
+           family={Bengio},
+           familyi={B\bibinitperiod},
+           given={Yoshua},
+           giveni={Y\bibinitperiod}}}%
+      }
+      \strng{namehash}{a19bd16ae98706ae8eced6dfd6ca3a14}
+      \strng{fullhash}{ccf5ebef61998aaab5ec6eace8f4564d}
+      \strng{fullhashraw}{ccf5ebef61998aaab5ec6eace8f4564d}
+      \strng{bibnamehash}{ccf5ebef61998aaab5ec6eace8f4564d}
+      \strng{authorbibnamehash}{ccf5ebef61998aaab5ec6eace8f4564d}
+      \strng{authornamehash}{a19bd16ae98706ae8eced6dfd6ca3a14}
+      \strng{authorfullhash}{ccf5ebef61998aaab5ec6eace8f4564d}
+      \strng{authorfullhashraw}{ccf5ebef61998aaab5ec6eace8f4564d}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{booktitle}{International Conference on Learning Representations (ICLR)}
+      \field{title}{Neural Machine Translation by Jointly Learning to Align and Translate}
+      \field{year}{2015}
+      \verb{urlraw}
+      \verb https://arxiv.org/abs/1409.0473
+      \endverb
+      \verb{url}
+      \verb https://arxiv.org/abs/1409.0473
+      \endverb
+    \endentry
+    \entry{jarvelin2002ndcg}{article}{}{}
+      \name{author}{2}{}{%
+        {{hash=cc5ad10d6e2bd65521f850e6a5783201}{%
+           family={J\"{a}rvelin},
+           familyi={J\bibinitperiod},
+           given={Kalervo},
+           giveni={K\bibinitperiod}}}%
+        {{hash=4211fe9dfed31746f5563ba969b7bbbb}{%
+           family={Kek\"{a}l\"{a}inen},
+           familyi={K\bibinitperiod},
+           given={Jaana},
+           giveni={J\bibinitperiod}}}%
+      }
+      \strng{namehash}{54e34fc2deb3a92b3d69d923863efa9c}
+      \strng{fullhash}{54e34fc2deb3a92b3d69d923863efa9c}
+      \strng{fullhashraw}{54e34fc2deb3a92b3d69d923863efa9c}
+      \strng{bibnamehash}{54e34fc2deb3a92b3d69d923863efa9c}
+      \strng{authorbibnamehash}{54e34fc2deb3a92b3d69d923863efa9c}
+      \strng{authornamehash}{54e34fc2deb3a92b3d69d923863efa9c}
+      \strng{authorfullhash}{54e34fc2deb3a92b3d69d923863efa9c}
+      \strng{authorfullhashraw}{54e34fc2deb3a92b3d69d923863efa9c}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{ACM Transactions on Information Systems}
+      \field{number}{4}
+      \field{title}{Cumulated Gain-Based Evaluation of {IR} Techniques}
+      \field{volume}{20}
+      \field{year}{2002}
+      \field{pages}{422\bibrangedash 446}
+      \range{pages}{25}
+      \verb{doi}
+      \verb 10.1145/582415.582418
+      \endverb
+    \endentry
+    \entry{moffat2008rbp}{inproceedings}{}{}
+      \name{author}{2}{}{%
+        {{hash=dc1cf83963f638e9f5a9b0d9470c3e09}{%
+           family={Moffat},
+           familyi={M\bibinitperiod},
+           given={Alistair},
+           giveni={A\bibinitperiod}}}%
+        {{hash=fec3a08fc98ee9b65f31e424408ed08f}{%
+           family={Zobel},
+           familyi={Z\bibinitperiod},
+           given={Justin},
+           giveni={J\bibinitperiod}}}%
+      }
+      \strng{namehash}{739f633ad8b8f5edb222b6ce85712d8b}
+      \strng{fullhash}{739f633ad8b8f5edb222b6ce85712d8b}
+      \strng{fullhashraw}{739f633ad8b8f5edb222b6ce85712d8b}
+      \strng{bibnamehash}{739f633ad8b8f5edb222b6ce85712d8b}
+      \strng{authorbibnamehash}{739f633ad8b8f5edb222b6ce85712d8b}
+      \strng{authornamehash}{739f633ad8b8f5edb222b6ce85712d8b}
+      \strng{authorfullhash}{739f633ad8b8f5edb222b6ce85712d8b}
+      \strng{authorfullhashraw}{739f633ad8b8f5edb222b6ce85712d8b}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{booktitle}{Proceedings of the 31st Annual International ACM SIGIR Conference}
+      \field{title}{Rank-biased Precision for Measurement of Retrieval Effectiveness}
+      \field{year}{2008}
+      \field{pages}{27\bibrangedash 34}
+      \range{pages}{8}
+      \verb{doi}
+      \verb 10.1145/1390334.1390349
+      \endverb
+    \endentry
+  \enddatalist
+\endrefsection
+\endinput
+
