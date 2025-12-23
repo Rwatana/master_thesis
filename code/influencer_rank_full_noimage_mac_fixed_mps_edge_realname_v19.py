@@ -13,7 +13,7 @@ Changes vs your previous script:
   - Guards MLflow plot logging so it won't crash if explanation fails.
 
 Usage examples:
-  # Mac (stable)
+  # Mac (stable)ƒ
   python influencer_rank_full_noimage_mac.py --device cpu
 
   # Mac (try MPS; if PyG/ops fail, fall back to cpu)
@@ -1111,7 +1111,7 @@ def maskopt_e2e_explain(
     undirected=True,
     feat_mask_scope="target",
     edge_mask_scope="incident",
-    epochs=30,
+    epochs=150,
     lr=0.05,
     coeffs=None,
     print_every=50,
@@ -2287,7 +2287,7 @@ def main():
         "RNN_DIM": 128,
         "NUM_GCN_LAYERS": 2,
         "PROJECTION_DIM": 128,
-        "EPOCHS": 30,
+        "EPOCHS": 300,
         "LIST_SIZE": 50,
         "BATCH_SIZE": 50 * 64,
         "USE_SAMPLER": True,

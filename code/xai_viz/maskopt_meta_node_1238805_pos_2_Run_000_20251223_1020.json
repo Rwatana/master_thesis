@@ -1,0 +1,29 @@
+{
+  "orig_pred": 0.042961884289979935,
+  "best_pred": 0.042961884289979935,
+  "best_loss": 0.02629246935248375,
+  "target_node": 1238805,
+  "explain_pos": 2,
+  "T": 11,
+  "feat_dim": 96,
+  "edge_params": 1021,
+  "pred_unmasked": 0.042961884289979935,
+  "pred_masked": 0.042961884289979935,
+  "impact_reference": "unmask",
+  "budget_feat": 10.0,
+  "budget_edge": 20.0,
+  "budget_weight": 1.0,
+  "coeffs": {
+    "edge_size": 0.08,
+    "edge_ent": 0.15,
+    "node_feat_size": 0.02,
+    "node_feat_ent": 0.15
+  },
+  "fid_weight": 2000.0,
+  "mask_threshold": 0.5,
+  "save_history_every": 1,
+  "loss_csv": "xai_viz/maskopt_loss_history_node_1238805_pos_2_Run_000_20251223_1020.csv",
+  "mask_npz": "xai_viz/maskopt_mask_history_node_1238805_pos_2_Run_000_20251223_1020.npz",
+  "feature_names_csv": "xai_viz/maskopt_feature_names_node_1238805_pos_2_Run_000_20251223_1020.csv",
+  "edge_names_csv": "xai_viz/maskopt_edge_names_node_1238805_pos_2_Run_000_20251223_1020.csv"
+}
