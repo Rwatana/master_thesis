@@ -279,3 +279,8 @@ TSWLatexianTemp*
 
 # xwatermark package
 *.xwm
+
+
+mlruns
+mlruns_artifacts
+

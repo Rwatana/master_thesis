@@ -1,0 +1,46 @@
+# -------------------------
+# Python
+# -------------------------
+# Pythonのキャッシュファイル
+__pycache__/
+# Jupyter Notebookのチェックポイント
+.ipynb_checkpoints/
+
+# -------------------------
+# Data & Output Files
+# -------------------------
+# CSVファイル全般 (データセットや分析結果)
+*.csv
+# テキスト形式のデータファイル
+*.txt
+# ZIPファイル
+*.zip
+# Word文書
+*.docx
+
+# -------------------------
+# Data & Output Directories
+# -------------------------
+# 分析結果が出力されるディレクトリ
+analysis_results_*/
+category_outputs/
+processed_by_category/
+
+# データが格納されているディレクトリ
+posts_image/
+posts_info/
+user_data/
+
+# -------------------------
+# IDE / Editor
+# -------------------------
+# VSCodeの設定ファイル
+.vscode/
+organizezd_posts
+*.info
+*.pth
+*.out
+*.html
+
+organized_images
+organized_posts

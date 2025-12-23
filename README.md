@@ -11,3 +11,13 @@
 
 ## 楽しい卒論・修論ライフのために
 便利なtipsなどは[wiki](https://github.com/murata-lab/template-thesis/wiki)に書いてください
+
+## Versions (environment snapshot)
+- Python: 3.13.7
+- torch: not_installed
+- torch_geometric: not_installed
+- pandas: not_installed
+- numpy: not_installed
+- scikit-learn: not_installed
+- mlflow: not_installed
+- matplotlib: not_installed
