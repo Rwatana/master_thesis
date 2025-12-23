@@ -994,11 +994,14 @@ def maskopt_e2e_explain(
     # ===== NEW =====
     edge_grouping="none",              # "none" | "neighbor"（wrapper側が対応している前提）
     impact_reference="masked",         # "masked" | "unmasked" | "both"
-    ablation_mode="gate_zero",         # "gate_zero" を強く推奨（baseline置換よりズレない）
+    ablation_mode="gate_zero",         # "gate_zero" | "baseline_mix"
+    impact_baseline="zero",            # "zero" | "mean_subgraph" | "mean_full"
+    impact_rho=1.0,                    # baseline mix strength
     # budget: “選ぶ数” を明示して散りを防ぐ
     budget_feat=None,                  # 例: 10
     budget_edge=None,                  # 例: 20（neighbor-groupなら20前後が良い）
     budget_weight=0.0,                 # 例: 1.0
+    return_gates=False,
     # Zero判定
     eps_abs_feat=1e-9,
     eps_rel_feat=1e-6,
@@ -1174,6 +1177,17 @@ def maskopt_e2e_explain(
     feat_gate = best["feat"].clamp(0.0, 1.0) if best["feat"] is not None else None
     edge_gate = best["edge"].clamp(0.0, 1.0) if best["edge"] is not None else None
 
+    baseline_vec = None
+    if ablation_mode == "baseline_mix":
+        if impact_baseline == "zero":
+            baseline_vec = torch.zeros(Fdim, device=device)
+        elif impact_baseline == "mean_subgraph":
+            baseline_vec = _feature_baseline(wrapper.x_exp).to(device)
+        elif impact_baseline == "mean_full":
+            baseline_vec = _feature_baseline(input_graphs[explain_pos].x.to(device)).to(device)
+        else:
+            raise ValueError(f"Unknown impact_baseline: {impact_baseline}")
+
     # ---- impact reference gates ----
     ones_feat = torch.ones(Fdim, device=device)
     ones_edge = torch.ones(Edim, device=device) if Edim > 0 else None
@@ -1211,15 +1225,17 @@ def maskopt_e2e_explain(
             if impact_reference in ("unmasked", "both"):
                 base_f = ones_feat.clone()
                 base_e = ones_edge.clone() if ones_edge is not None else None
-                if ablation_mode == "gate_zero":
-                    ab_f = base_f.clone()
-                    ab_f[j] = 0.0
+                if ablation_mode == "baseline_mix":
+                    x_abl = wrapper.x_exp.clone()
+                    if wrapper.feat_mask_scope in ("all", "subgraph"):
+                        x_abl[:, j] = (1.0 - float(impact_rho)) * x_abl[:, j] + float(impact_rho) * baseline_vec[j]
+                    else:
+                        x_abl[wrapper.target_local, j] = (1.0 - float(impact_rho)) * x_abl[wrapper.target_local, j] + float(impact_rho) * baseline_vec[j]
                     with torch.no_grad():
                         with cudnn_ctx:
-                            pred_abl = float(wrapper.predict_with_gates(ab_f, base_e).item())
+                            pred_abl = float(wrapper.predict_with_gates(base_f, base_e, x_override=x_abl).item())
                     diff = pred_unmasked - pred_abl
                 else:
-                    # fallback: gate_zero推奨なので、ここは同等に扱う
                     ab_f = base_f.clone()
                     ab_f[j] = 0.0
                     with torch.no_grad():
@@ -1232,12 +1248,23 @@ def maskopt_e2e_explain(
             if impact_reference in ("masked", "both"):
                 base_f = feat_gate.clone()
                 base_e = edge_gate.clone() if edge_gate is not None else None
-                ab_f = base_f.clone()
-                ab_f[j] = 0.0
-                with torch.no_grad():
-                    with cudnn_ctx:
-                        pred_abl = float(wrapper.predict_with_gates(ab_f, base_e).item())
-                diff = pred_masked - pred_abl
+                if ablation_mode == "baseline_mix":
+                    x_abl = wrapper.x_exp.clone()
+                    if wrapper.feat_mask_scope in ("all", "subgraph"):
+                        x_abl[:, j] = (1.0 - float(impact_rho)) * x_abl[:, j] + float(impact_rho) * baseline_vec[j]
+                    else:
+                        x_abl[wrapper.target_local, j] = (1.0 - float(impact_rho)) * x_abl[wrapper.target_local, j] + float(impact_rho) * baseline_vec[j]
+                    with torch.no_grad():
+                        with cudnn_ctx:
+                            pred_abl = float(wrapper.predict_with_gates(base_f, base_e, x_override=x_abl).item())
+                    diff = pred_masked - pred_abl
+                else:
+                    ab_f = base_f.clone()
+                    ab_f[j] = 0.0
+                    with torch.no_grad():
+                        with cudnn_ctx:
+                            pred_abl = float(wrapper.predict_with_gates(ab_f, base_e).item())
+                    diff = pred_masked - pred_abl
                 refs.append(("masked", diff, _direction(diff, pred_masked, eps_abs_feat, eps_rel_feat)))
 
             name = feature_names[j] if j < len(feature_names) else f"feat_{j}"
@@ -1340,12 +1367,22 @@ def maskopt_e2e_explain(
         "pred_unmasked": float(pred_unmasked),
         "pred_masked": float(pred_masked),
         "impact_reference": str(impact_reference),
+        "ablation_mode": str(ablation_mode),
+        "impact_baseline": str(impact_baseline),
+        "impact_rho": float(impact_rho),
         "budget_feat": None if budget_feat is None else float(budget_feat),
         "budget_edge": None if budget_edge is None else float(budget_edge),
         "budget_weight": float(budget_weight),
         "coeffs": dict(coeffs),
         "fid_weight": float(fid_weight),
     }
+    if return_gates:
+        gates = {
+            "feat_gate": None if feat_gate is None else feat_gate.detach().cpu().numpy(),
+            "edge_gate": None if edge_gate is None else edge_gate.detach().cpu().numpy(),
+            "edge_group_names": getattr(wrapper, "edge_group_names", None),
+        }
+        return df_feat, df_edge, meta, gates
     return df_feat, df_edge, meta
 
 
