@@ -1,0 +1,21 @@
+# Minimal unified diff (conceptual). Prefer apply_influencerrank_patch.py for robustness.
+# - Remove seaborn dependency (import + usage)
+# - Add matplotlib Agg backend
+# - Replace sns.heatmap with plt.imshow + colorbar
+# - Remove sns.set_style
+
+--- a/BASE_SCRIPT.py
++++ b/influencer_rank_full_modified.py
+@@
+-import matplotlib.pyplot as plt
+-import seaborn as sns
++import matplotlib
++matplotlib.use("Agg")
++import matplotlib.pyplot as plt
+@@ def plot_attention_weights(attention_matrix, run_name):
+-    sns.heatmap(subset_matrix, cmap="Blues", annot=False, cbar_kws={'label': 'Attention Weight'})
++    im = plt.imshow(subset_matrix, aspect="auto", interpolation="nearest")
++    plt.colorbar(im, label="Attention Weight")
+@@ def generate_enhanced_scatter_plot(...):
+-    sns.set_style("whitegrid")
++    # seaborn removed; keep simple matplotlib grid
