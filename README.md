@@ -21,3 +21,14 @@
 - scikit-learn: not_installed
 - mlflow: not_installed
 - matplotlib: not_installed
+
+
+## 活動しているインフルエンサーの選定
+```
+python find_consistently_active_users.py \
+  --end_date 2017-12-31 --num_months 12 \
+  --min_posts 5 --min_active_days 3 \
+  --topk 200
+
+```
+
