@@ -609,6 +609,13 @@ def prepare_graph_data(end_date, num_months=12, metric_numerator='likes', metric
     node_to_idx = {node: i for i, node in enumerate(all_nodes)}
     influencer_indices = [node_to_idx[inf] for inf in influencer_list if inf in node_to_idx]
 
+
+    # --- debug target（引数を増やしたくないならここで固定）---
+    DEBUG_TARGET_USERNAME = "1238805"   # ←観測したい user（string推奨）
+    t = node_to_idx.get(str(DEBUG_TARGET_USERNAME), None)
+    if t is None:
+        print(f"[edge-month-debug] target '{DEBUG_TARGET_USERNAME}' not in node_to_idx (nodes={len(all_nodes)})")
+
     # --- 7. Static Features ---
     node_df = pd.DataFrame({'username': all_nodes})
     profile_features = pd.merge(
