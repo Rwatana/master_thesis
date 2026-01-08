@@ -684,7 +684,7 @@ def prepare_graph_data(end_date, num_months=12, metric_numerator='likes', metric
     # --- 8. Dynamic Features ---
     STATS_AGG = ['mean', 'median', 'min', 'max']
     required_cols = [
-        'brightness', 'colorfulness', 'color_temp_proxy',
+        # 'brightness', 'colorfulness', 'color_temp_proxy',
         'tag_count', 'mention_count', 'emoji_count', 'caption_length',
         'caption_sent_pos', 'caption_sent_neg', 'caption_sent_neu', 'caption_sent_compound',
         'feedback_rate', 'comment_avg_pos', 'comment_avg_neg', 'comment_avg_neu', 'comment_avg_compound'
@@ -695,6 +695,8 @@ def prepare_graph_data(end_date, num_months=12, metric_numerator='likes', metric
 
     df_posts.sort_values(by=['username', 'datetime'], inplace=True)
     df_posts['post_interval_sec'] = df_posts.groupby('username')['datetime'].diff().dt.total_seconds().fillna(0)
+    # make interval to log scale
+    df_posts['post_interval_sec'] = np.log1p(df_posts['post_interval_sec'])
 
     if 'post_category' not in df_posts.columns:
         post_categories = [f'post_cat_{i}' for i in range(10)]
@@ -703,9 +705,9 @@ def prepare_graph_data(end_date, num_months=12, metric_numerator='likes', metric
         df_posts['is_ad'] = 0
 
     agg_config = {
-        'brightness': STATS_AGG,
-        'colorfulness': STATS_AGG,
-        'color_temp_proxy': STATS_AGG,
+        # 'brightness': STATS_AGG,
+        # 'colorfulness': STATS_AGG,
+        # 'color_temp_proxy': STATS_AGG,
         'tag_count': STATS_AGG,
         'mention_count': STATS_AGG,
         'emoji_count': STATS_AGG,

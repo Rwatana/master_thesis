@@ -695,6 +695,8 @@ def prepare_graph_data(end_date, num_months=12, metric_numerator='likes', metric
 
     df_posts.sort_values(by=['username', 'datetime'], inplace=True)
     df_posts['post_interval_sec'] = df_posts.groupby('username')['datetime'].diff().dt.total_seconds().fillna(0)
+    # make interval to log scale
+    df_posts['post_interval_sec'] = np.log1p(df_posts['post_interval_sec'])
 
     if 'post_category' not in df_posts.columns:
         post_categories = [f'post_cat_{i}' for i in range(10)]
@@ -3470,7 +3472,7 @@ def main():
     sweep_grid = {
         # 'LR': [0.001, 0.003, 0.005, 0.0003],
         # 'DROPOUT_PROB': [0.05, 0.1, 0.2],
-        # 'POINTWISE_LOSS_WEIGHT': [0.01, 0.1],
+        'POINTWISE_LOSS_WEIGHT': [0.01, 0.1],
         # 'GCN_DIM': [64, 128],
         # 'RNN_DIM': [64, 128],
         # 'EPOCHS': [50, 100, 150, 200],
@@ -3479,10 +3481,10 @@ def main():
         # 'USE_SAMPLER': [True, False],
         # "RIGHT_Q": [0.85],
         # "RIGHT_W": [1, 12.0],
-        # "LEFT_Q": [0.10],
-        # "LEFT_W": [1, 3.0],
-        # "N_HIGH": [1, 3, 5],
-        # "N_LOW": [0, 1],
+        "LEFT_Q": [0.10, 0.15],
+        "LEFT_W": [1, 3.0],
+        "N_HIGH": [1, 3, 5],
+        "N_LOW": [0, 1],
     }
 
     def _expand_grid(grid_dict):

@@ -575,15 +575,13 @@ def prepare_graph_data(end_date, num_months=12, metric_numerator='likes', metric
             # print(f"Warning: Failed to load '{IMAGE_DATA_FILE}' ({e}). Continue without image features.")
             use_image_features = False
 
-        if not use_image_features:
-            for c in image_feature_cols:
-                if c not in df_posts.columns:
-                    df_posts[c] = 0.0
-            # required_cols からは外す（動的特徴に入れない）
-            required_cols = [c for c in required_cols if c not in image_feature_cols]
+    if not use_image_features:
+        # Ensure numeric image feature columns exist with zeros (so downstream aggregation works)
+        for col in ["brightness", "colorfulness", "color_temp_proxy"]:
+            if col not in df_posts.columns:
+                df_posts[col] = 0.0
 
-
-# --- 3. Merge Posts and Image Features ---
+    # --- 3. Merge Posts and Image Features ---
     # (merged above if use_image_features=True; otherwise filled with zeros)
     # --- 4. Prepare Graph Edges ---
     df_object_edges = pd.merge(df_objects_slim, df_posts[['post_id', 'datetime']], on='post_id')
@@ -663,48 +661,8 @@ def prepare_graph_data(end_date, num_months=12, metric_numerator='likes', metric
     for col in ['followers', 'followees', 'posts_history']:
         profile_features[col] = np.log1p(profile_features[col])
 
-    # category_dummies = pd.get_dummies(profile_features['category'], prefix='cat', dummy_na=True)
-    # profile_features = pd.concat([profile_features, category_dummies], axis=1).drop(columns=['category'])
-    import re
-
-    ALLOWED_CATS = {
-        "beauty", "family", "fashion", "fitness", "food", "interior", "pet", "travel", "other"
-    }
-
-    def clean_category(x):
-        if pd.isna(x):
-            return np.nan
-        s = str(x).strip().lower()
-
-        # タイポ/ゴミ値は「カテゴリとしては無効」扱い → one-hotを作らない
-        if s in {"unknown", "nan", "none", "null", ""}:
-            return np.nan
-
-        # "fashion 0.5" は削除
-        if re.fullmatch(r"fashion\s*0\.5", s):
-            return np.nan
-
-        return s
-
-    # --- Category one-hot (cleaned) ---
-    profile_features["category_clean"] = profile_features["category"].map(clean_category)
-
-    # 許可カテゴリ以外も削除（one-hotを作らない）
-    profile_features.loc[
-        ~profile_features["category_clean"].isin(ALLOWED_CATS),
-        "category_clean"
-    ] = np.nan
-
-    cat_dummies = pd.get_dummies(profile_features["category_clean"], prefix="cat")
-
-    # 文字列列 category / category_clean は落として、one-hotだけ残す
-    profile_features = pd.concat(
-        [profile_features.drop(columns=["category", "category_clean"], errors="ignore"), cat_dummies],
-        axis=1
-    )
-
-
-
+    category_dummies = pd.get_dummies(profile_features['category'], prefix='cat', dummy_na=True)
+    profile_features = pd.concat([profile_features, category_dummies], axis=1).drop(columns=['category'])
 
     node_df['type'] = 'unknown'
     node_df.loc[node_df['username'].isin(influencer_set), 'type'] = 'influencer'
@@ -716,6 +674,12 @@ def prepare_graph_data(end_date, num_months=12, metric_numerator='likes', metric
     static_features = pd.concat([profile_features, node_type_dummies], axis=1)
     static_feature_cols = list(static_features.drop('username', axis=1).columns)
 
+    print(node_df["type"].value_counts(dropna=False))
+    print("influencer_set size:", len(influencer_set))
+    print("all_nodes size:", len(all_nodes))
+    print("influencer in all_nodes:", sum([n in influencer_set for n in all_nodes]))
+
+
     try:
         follower_feat_idx = static_feature_cols.index('followers')
         # print(f"DEBUG: 'followers' feature is at index {follower_feat_idx} in static features.")
@@ -726,7 +690,6 @@ def prepare_graph_data(end_date, num_months=12, metric_numerator='likes', metric
     # --- 8. Dynamic Features ---
     STATS_AGG = ['mean', 'median', 'min', 'max']
     required_cols = [
-        'brightness', 'colorfulness', 'color_temp_proxy',
         'tag_count', 'mention_count', 'emoji_count', 'caption_length',
         'caption_sent_pos', 'caption_sent_neg', 'caption_sent_neu', 'caption_sent_compound',
         'feedback_rate', 'comment_avg_pos', 'comment_avg_neg', 'comment_avg_neu', 'comment_avg_compound'
@@ -734,25 +697,34 @@ def prepare_graph_data(end_date, num_months=12, metric_numerator='likes', metric
     for col in required_cols:
         if col not in df_posts.columns:
             df_posts[col] = 0.0
-    
-    image_feature_cols = ['brightness', 'colorfulness', 'color_temp_proxy']
 
-    use_image_features = False
+    # df_posts.sort_values(by=['username', 'datetime'], inplace=True)
+    # df_posts['post_interval_sec'] = df_posts.groupby('username')['datetime'].diff().dt.total_seconds().fillna(0)
+    # df_posts['post_interval_hr_log1p'] = np.log1p(df_posts['post_interval_sec'] / 3600.0)
 
-    if not use_image_features:
-        required_cols = [c for c in required_cols if c not in image_feature_cols]
-        for c in image_feature_cols:
-            df_posts.drop(columns=[c], errors="ignore", inplace=True)
+    # df_posts.sort_values(by=['username', 'datetime'], inplace=True)
 
-    df_posts.sort_values(by=['username', 'datetime'], inplace=True)
-    df_posts['post_interval_sec'] = (
-        df_posts.groupby(['username', 'month'])['datetime']
+    # # month が既にある前提（あなたのコードは df_posts['month'] を作ってる）
+    # df_posts['post_interval_sec'] = (
+    #     df_posts.groupby(['username', 'month'])['datetime']
+    #     .diff()
+    #     .dt.total_seconds()
+    # )
+
+    # df_posts['post_interval_sec'] = df_posts['post_interval_sec'].fillna(0)
+    # df_posts['post_interval_hr_log1p'] = np.log1p(df_posts['post_interval_sec'] / 3600.0)
+
+    df_posts = df_posts.sort_values(["username", "month", "datetime"])
+
+    sec = (
+        df_posts.groupby(["username", "month"])["datetime"]
         .diff()
-        .dt.total_seconds())
+        .dt.total_seconds()
+    )
 
-    sec = df_posts['post_interval_sec'].fillna(0)
-    sec = sec.clip(lower=0, upper=30*24*3600)  # 月最大くらいで上限
-    df_posts['post_interval_hr_log1p'] = np.log1p(sec / 3600.0)
+    sec = sec.clip(lower=0, upper=30*24*3600)      # 安全クリップ
+    df_posts["post_interval_hr_log1p"] = sec
+
 
 
     if 'post_category' not in df_posts.columns:
@@ -765,7 +737,6 @@ def prepare_graph_data(end_date, num_months=12, metric_numerator='likes', metric
         # 'brightness': STATS_AGG,
         # 'colorfulness': STATS_AGG,
         # 'color_temp_proxy': STATS_AGG,
-        'post_interval_hr_log1p': STATS_AGG,
         'tag_count': STATS_AGG,
         'mention_count': STATS_AGG,
         'emoji_count': STATS_AGG,
@@ -774,7 +745,8 @@ def prepare_graph_data(end_date, num_months=12, metric_numerator='likes', metric
         'caption_sent_neg': STATS_AGG,
         'caption_sent_neu': STATS_AGG,
         'caption_sent_compound': STATS_AGG,
-        'post_interval_sec': STATS_AGG,
+        # 'post_interval_sec': STATS_AGG,
+        'post_interval_hr_log1p': STATS_AGG,
         'comment_avg_pos': STATS_AGG,
         'comment_avg_neg': STATS_AGG,
         'comment_avg_neu': STATS_AGG,
@@ -823,7 +795,6 @@ def prepare_graph_data(end_date, num_months=12, metric_numerator='likes', metric
                     for u, m in zip(current_mentions['username'], current_mentions['mention'])
                     if str(u) in node_to_idx and str(m) in node_to_idx]
 
-
         all_edges = list(set(edges_ht + edges_mt + edges_io))
         all_edges += [(idx, idx) for idx in influencer_indices]
         all_edges = list(set(all_edges))
@@ -834,16 +805,6 @@ def prepare_graph_data(end_date, num_months=12, metric_numerator='likes', metric
         edge_index = torch.tensor(all_edges, dtype=torch.long).t().contiguous()
         edge_index = to_undirected(edge_index, num_nodes=num_nodes)
         edge_index = coalesce(edge_index, num_nodes=num_nodes)
-
-        ei = edge_index
-        t = torch.tensor(influencer_indices, dtype=torch.long).view(-1, 1)
-        incident = (ei[0] == t) | (ei[1] == t)
-        self_loop = (ei[0] == t) & (ei[1] == t)
-
-        n_inc  = int(incident.sum().item())
-        n_self = int(self_loop.sum().item())
-        print(f"[edge-month-debug] {snapshot_month.strftime('%Y-%m')} incident={n_inc} "
-            f"self_loop={n_self} incident_wo_self={n_inc - n_self}")
 
         current_dynamic = dynamic_features[dynamic_features['month'] == snapshot_month]
         snapshot_features = pd.merge(static_features, current_dynamic, on='username', how='left')
@@ -3533,6 +3494,8 @@ def main():
         "RIGHT_W": 12.0,
         "LEFT_Q": 0.1,
         "LEFT_W": 1.0,
+        "N_HIGH": 3,
+        "N_LOW": 0,
     }
 
 
@@ -3541,21 +3504,21 @@ def main():
     ]
 
     sweep_grid = {
-        # 'LR': [0.001, 0.003, 0.005, 0.0003],
+        # 'LR': [0.001, 0.003],
         # 'DROPOUT_PROB': [0.05, 0.1, 0.2],
         # 'POINTWISE_LOSS_WEIGHT': [0.01, 0.1, 0.3],
         # 'GCN_DIM': [64, 128],
         # 'RNN_DIM': [64, 128],
         # 'EPOCHS': [50, 100, 150, 200],
-        'LIST_SIZE': [20],
+        # 'LIST_SIZE': [20],
         # 'BATCH_SIZE': [20 * 64, 50 * 64],
         # 'USE_SAMPLER': [True, False],
-        # "RIGHT_Q": [0.85],
+        # "RIGHT_Q": [0.85, 0.90],
         # "RIGHT_W": [1, 12.0],
         # "LEFT_Q": [0.10],
         # "LEFT_W": [1, 3.0],
-        "N_HIGH": [3],
-        "N_LOW": [0],
+        # "N_HIGH": [3],
+        # "N_LOW": [0],
     }
 
     def _expand_grid(grid_dict):
