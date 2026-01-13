@@ -1018,6 +1018,10 @@ def plot_attention_weights(attention_matrix, run_name):
     filename_raw = f"attention_weights_raw_{run_name}.npz"
     np.savez_compressed(filename_raw, attention=attention_matrix)
 
+
+
+    
+
     return filename_bar, filename_heat, filename_csv, filename_raw
 
 def generate_enhanced_scatter_plot(x_data, y_data, x_label, y_label, run_id, filename_suffix,
@@ -2201,6 +2205,73 @@ def maskopt_e2e_explain(
     return df_feat, df_edge, meta
 
 
+import gc
+
+def _get_l2g(g):
+    # local->global id が入ってそうな属性を順に探す
+    for attr in ["global_node_ids", "n_id", "node_ids", "orig_n_id", "local2global"]:
+        if hasattr(g, attr):
+            a = getattr(g, attr)
+            if isinstance(a, torch.Tensor):
+                a = a.detach().cpu().numpy()
+            return np.asarray(a)
+    return None  # edge_index が global id を直接持つ実装なら None
+
+def count_nonself_out_edges(g, target_gid: int):
+    """
+    g.edge_index のうち、target -> (dst != target) の本数を数える。
+    戻り: (count, target_local_idx or None, has_target_in_nodeset)
+    """
+    l2g = _get_l2g(g)
+    if l2g is None:
+        # edge_index が global id を直接持つ想定
+        u = int(target_gid)
+        has_u = True
+    else:
+        hit = np.where(l2g == int(target_gid))[0]
+        if len(hit) == 0:
+            return 0, None, False
+        u = int(hit[0])
+        has_u = True
+
+    ei = g.edge_index
+    src = ei[0].detach().cpu().numpy()
+    dst = ei[1].detach().cpu().numpy()
+
+    nonself_mask = (src == u) & (dst != u)
+    return int(nonself_mask.sum()), u, has_u
+
+import numpy as np
+import torch
+
+def _get_l2g(g):
+    for attr in ["global_node_ids", "n_id", "node_ids", "orig_n_id", "local2global"]:
+        if hasattr(g, attr):
+            a = getattr(g, attr)
+            if isinstance(a, torch.Tensor):
+                a = a.detach().cpu().numpy()
+            return np.asarray(a)
+    return None
+
+def count_nonself_out_edges(g, target_gid: int):
+    l2g = _get_l2g(g)
+    if l2g is None:
+        u = int(target_gid)
+        has_u = True
+    else:
+        hit = np.where(l2g == int(target_gid))[0]
+        if len(hit) == 0:
+            return 0, None, False
+        u = int(hit[0])
+        has_u = True
+
+    ei = g.edge_index
+    src = ei[0].detach().cpu().numpy()
+    dst = ei[1].detach().cpu().numpy()
+    nonself = (src == u) & (dst != u)
+    return int(nonself.sum()), u, has_u
+
+
 def run_maskopt_for_all_months(
     model,
     monthly_graphs,
@@ -2211,21 +2282,60 @@ def run_maskopt_for_all_months(
     run_name=None,
     num_hops=6,
     use_subgraph=True,
+    # 追加: “MaskOptでedgeが空になった時のフォールバック”
+    fallback_rerun_without_subgraph=True,
 ):
-    """Optional driver: run MaskOpt for every month pos (T months)."""
+    """
+    Driver: run MaskOpt for every month pos (T months).
+
+    追加したこと:
+    - 各 explain_pos で「グラフ上に target の非self out edge があるか」を事前に数える
+    - df_edge が空になった月だけ、(option) use_subgraph=False で再実行して原因切り分け
+    """
     model.eval()
+
+    # あなたの実装が「最後の月をラベルにして入力は monthly_graphs[:-1]」ならそのままでOK
     input_graphs = monthly_graphs[:-1]
     T = len(input_graphs)
     month_labels = [f"pos_{i}" for i in range(T)]
+
     all_feat, all_edge = [], []
-
-
+    diag_rows = []
 
     for explain_pos in range(T):
         label = month_labels[explain_pos]
         tag = label
-        # print(f"\n🔧 [MaskOpt Driver] explain_pos={explain_pos}/{T-1} ({label})")
 
+        g = input_graphs[explain_pos]
+        n_out, u_local, has_u = count_nonself_out_edges(g, target_node_global_idx)
+        print(f"[diag] pos={explain_pos} has_target={has_u} nonself_out={n_out} "
+            f"num_nodes={g.num_nodes} num_edges={g.edge_index.size(1)}")
+        print(f"\n[xai] pos={explain_pos}/{T-1} {label}  has_target={has_u}  nonself_out_edges={n_out}  use_subgraph={use_subgraph}")
+
+        # 診断ログ（あとでCSVにできる）
+        diag_rows.append({
+            "explain_pos": explain_pos,
+            "label": label,
+            "has_target": bool(has_u),
+            "nonself_out_edges": int(n_out),
+            "use_subgraph": bool(use_subgraph),
+        })
+
+        # グラフに target がそもそもいないなら、MaskOpt以前の問題
+        if not has_u:
+            print(f"[WARN] target_node {target_node_global_idx} is NOT in node-set at {label}. "
+                  f"-> graph construction / active-node filtering issue.")
+            continue
+
+        # グラフ上で非self out が 0 なら、「incidentが落ちてる」か「edge_indexがincidentを持ってない」問題
+        if n_out == 0:
+            print(f"[WARN] graph has ZERO non-self out edges at {label}. "
+                  f"-> either this month really has no incident edges for this user in graph, "
+                  f"or incident edges are not included in edge_index for subgraph/sequence.")
+            # それでも MaskOpt を回してみたいなら続行してOK（多分 df_edge 空）
+            # continue
+
+        # ---- 1st try ----
         try:
             df_feat, df_edge, meta = maskopt_e2e_explain(
                 model=model,
@@ -2251,12 +2361,52 @@ def run_maskopt_for_all_months(
                 diag_quantiles=(0.1, 0.5, 0.9),
             )
 
+            # 保存
             if df_feat is not None and not df_feat.empty:
                 df_feat.insert(3, "month_label", label)
                 all_feat.append(df_feat)
+
             if df_edge is not None and not df_edge.empty:
                 df_edge.insert(3, "month_label", label)
                 all_edge.append(df_edge)
+            else:
+                # ここが「存在するはずなのに edge が空」問題の本丸
+                print(f"[WARN] df_edge empty at {label} (incident). "
+                      f"graph nonself_out_edges={n_out}.")
+                # ---- fallback: rerun without subgraph ----
+                if fallback_rerun_without_subgraph and use_subgraph:
+                    print(f"[fallback] rerun maskopt with use_subgraph=False at {label}")
+                    df_feat2, df_edge2, meta2 = maskopt_e2e_explain(
+                        model=model,
+                        input_graphs=input_graphs,
+                        target_node_idx=target_node_global_idx,
+                        explain_pos=explain_pos,
+                        feature_names=feature_names,
+                        node_to_idx=node_to_idx,
+                        device=device,
+                        use_subgraph=False,            # ★ここだけ変える
+                        num_hops=num_hops,
+                        edge_mask_scope="incident",
+                        edge_grouping="neighbor",
+                        fid_weight=2000.0,
+                        coeffs={"edge_size":0.08,"edge_ent":0.15,"node_feat_size":0.02,"node_feat_ent":0.15},
+                        budget_feat=10, budget_edge=20, budget_weight=1.0,
+                        impact_reference="masked",
+                        use_contrastive=False,
+                        mlflow_log=True,
+                        tag=f"{tag}_nosub",
+                        log_diagnostics=True,
+                        diag_thr_list=[0.01, 0.05, 0.1],
+                        diag_quantiles=(0.1, 0.5, 0.9),
+                    )
+                    if df_edge2 is not None and not df_edge2.empty:
+                        df_edge2.insert(3, "month_label", label)
+                        df_edge2.insert(4, "fallback", "nosubgraph")
+                        all_edge.append(df_edge2)
+                    else:
+                        print(f"[fallback] still empty df_edge at {label} even without subgraph "
+                              f"-> incident edge candidate extraction / grouping bug inside maskopt_e2e_explain.")
+
         except Exception as e:
             print(f"💥 MaskOpt Error at explain_pos={explain_pos} ({label}): {e}")
         finally:
@@ -2266,12 +2416,17 @@ def run_maskopt_for_all_months(
 
     df_feat_all = pd.concat(all_feat, ignore_index=True) if all_feat else pd.DataFrame()
     df_edge_all = pd.concat(all_edge, ignore_index=True) if all_edge else pd.DataFrame()
+
+    # 診断ログを出す（これが超役に立つ）
+    df_diag = pd.DataFrame(diag_rows)
     if run_name:
+        df_diag.to_csv(f"maskopt_diag_{run_name}.csv", index=False)
         if not df_feat_all.empty:
             df_feat_all.to_csv(f"maskopt_feature_all_{run_name}.csv", index=False)
         if not df_edge_all.empty:
             df_edge_all.to_csv(f"maskopt_edge_all_{run_name}.csv", index=False)
-    return df_feat_all, df_edge_all
+
+    return df_feat_all, df_edge_all, df_diag
 
 # ===================== Additional helpers (sensitivity + MLflow plotting) =====================
 
@@ -2724,27 +2879,1219 @@ def compute_two_ndcgs(df, k_list=(1, 10, 50, 100, 200)):
 
     return out
 
+def _make_pos_replaced_seq(
+    seq: torch.Tensor,   # [B, T, D]
+    raw: torch.Tensor,   # [B, T, P]
+    pos: int,
+    mode: str,
+    global_pos_mean_seq=None,  # [T,D]
+    global_pos_mean_raw=None,  # [T,P]
+    rng: torch.Generator | None = None,
+):
+    """
+    Return (seq2, raw2) where time-step 'pos' is replaced by baseline.
+    """
+    B, T, D = seq.shape
+    _, _, P = raw.shape
+    assert 0 <= pos < T
+
+    seq2 = seq.clone()
+    raw2 = raw.clone()
+
+    if mode == "zero":
+        seq2[:, pos, :] = 0.0
+        raw2[:, pos, :] = 0.0
+
+    elif mode == "user_mean":
+        # mean over other positions per user
+        if T == 1:
+            seq2[:, pos, :] = 0.0
+            raw2[:, pos, :] = 0.0
+        else:
+            mask = torch.ones(T, device=seq.device, dtype=torch.bool)
+            mask[pos] = False
+            seq2[:, pos, :] = seq[:, mask, :].mean(dim=1)
+            raw2[:, pos, :] = raw[:, mask, :].mean(dim=1)
+
+    elif mode == "global_pos_mean":
+        assert global_pos_mean_seq is not None and global_pos_mean_raw is not None
+        seq2[:, pos, :] = global_pos_mean_seq[pos].view(1, -1)
+        raw2[:, pos, :] = global_pos_mean_raw[pos].view(1, -1)
+
+    elif mode == "shuffle_pos":
+        # permute users within the batch at the same pos
+        if rng is None:
+            perm = torch.randperm(B, device=seq.device)
+        else:
+            perm = torch.randperm(B, device=seq.device, generator=rng)
+        seq2[:, pos, :] = seq2[perm, pos, :]
+        raw2[:, pos, :] = raw2[perm, pos, :]
+
+    else:
+        raise ValueError(f"unknown baseline mode: {mode}")
+
+    return seq2, raw2
+
+
+@torch.no_grad()
+def compute_pos_importance_from_embeddings(
+    model,
+    f_seq: torch.Tensor,   # [N, T, D]  (GCN output for influencers)
+    f_raw: torch.Tensor,   # [N, T, P]  (projection output for influencers)
+    baseline_scores: torch.Tensor,  # [N]
+    device,
+    baseline_modes=("zero", "user_mean", "global_pos_mean", "shuffle_pos"),
+    batch_size=1024,
+    seed=0,
+):
+    """
+    Returns:
+      df_pos_long: columns = [baseline_mode, pos, pred_orig_mean, delta_median, delta_mean, delta_abs_mean]
+      deltas: dict[mode] -> np.ndarray [N,T] (optional heavy)
+    """
+    model.eval()
+    N, T, D = f_seq.shape
+    _, _, P = f_raw.shape
+
+    # precompute global pos mean (over users) for global_pos_mean mode
+    global_pos_mean_seq = f_seq.mean(dim=0).to(device)  # [T,D]
+    global_pos_mean_raw = f_raw.mean(dim=0).to(device)  # [T,P]
+
+    # orig preds
+    preds_orig = []
+    for i in range(0, N, batch_size):
+        j = min(i + batch_size, N)
+        b_seq = f_seq[i:j].to(device)
+        b_raw = f_raw[i:j].to(device)
+        b_base = baseline_scores[i:j].to(device)
+        p, _ = model(b_seq, b_raw, b_base)
+        preds_orig.append(p.view(-1).detach().cpu())
+    preds_orig = torch.cat(preds_orig, dim=0)  # [N]
+    pred_orig_mean = float(preds_orig.mean().item())
+
+    rng = torch.Generator(device=device)
+    rng.manual_seed(int(seed))
+
+    rows = []
+    # (optional) keep all deltas if you want heatmaps later
+    deltas_np = {}
+
+    for mode in baseline_modes:
+        # allocate [N,T] deltas on CPU to avoid GPU RAM blow
+        deltas_mode = torch.empty((N, T), dtype=torch.float32)
+
+        for pos in range(T):
+            preds_mod = []
+            for i in range(0, N, batch_size):
+                j = min(i + batch_size, N)
+
+                b_seq = f_seq[i:j].to(device)
+                b_raw = f_raw[i:j].to(device)
+                b_base = baseline_scores[i:j].to(device)
+
+                b_seq2, b_raw2 = _make_pos_replaced_seq(
+                    b_seq, b_raw, pos=pos, mode=mode,
+                    global_pos_mean_seq=global_pos_mean_seq,
+                    global_pos_mean_raw=global_pos_mean_raw,
+                    rng=rng,
+                )
+                p2, _ = model(b_seq2, b_raw2, b_base)
+                preds_mod.append(p2.view(-1).detach().cpu())
+
+            preds_mod = torch.cat(preds_mod, dim=0)  # [N]
+            delta = (preds_orig - preds_mod).to(torch.float32)  # signed
+            deltas_mode[:, pos] = delta
+
+        # aggregate per pos
+        delta_median = torch.median(deltas_mode, dim=0).values.numpy()
+        delta_mean = deltas_mode.mean(dim=0).numpy()
+        delta_abs_mean = deltas_mode.abs().mean(dim=0).numpy()
+
+        for pos in range(T):
+            rows.append({
+                "baseline_mode": str(mode),
+                "pos": int(pos),
+                "pred_orig_mean": float(pred_orig_mean),
+                "delta_median": float(delta_median[pos]),
+                "delta_mean": float(delta_mean[pos]),
+                "delta_abs_mean": float(delta_abs_mean[pos]),
+            })
+
+        deltas_np[str(mode)] = deltas_mode.numpy()
+
+    df_pos_long = pd.DataFrame(rows).sort_values(["baseline_mode","pos"]).reset_index(drop=True)
+    return df_pos_long, deltas_np
+
 
 # ===================== Training / Evaluation / Explanation =====================
 
+# def run_experiment(params, graphs_data, target_node_idx, experiment_id=None):
+#     ...
+#     # Returns: (run_id, final_test_metrics_dict)
+#     run_id = None
+#     final_test_metrics = None
+#     monthly_graphs, influencer_indices, node_to_idx, feature_dim, follower_feat_idx, static_cols, dynamic_cols = graphs_data
+    
+#     idx_to_node = {int(v): str(k) for k, v in node_to_idx.items()}
+    
+#     current_time_str = datetime.datetime.now().strftime("%Y%m%d_%H%M")
+#     run_name = f"{params.get('name_prefix', 'Run')}_{current_time_str}"
+
+#     with mlflow.start_run(run_name=run_name, experiment_id=experiment_id):
+#         run_id = mlflow.active_run().info.run_id
+#         mlflow.log_params(params)
+#         # print(f"\n🚀 Starting MLflow Run: {run_name}")
+#         if 'note' in params:
+#             print(f"Note: {params['note']}")
+#         model = HardResidualInfluencerModel(
+#             feature_dim=feature_dim,
+#             gcn_dim=params['GCN_DIM'],
+#             rnn_dim=params['RNN_DIM'],
+#             num_gcn_layers=params['NUM_GCN_LAYERS'],
+#             dropout_prob=params['DROPOUT_PROB'],
+#             projection_dim=params['PROJECTION_DIM']
+#         ).to(device)
+
+#         mode_run = str(params.get("MODE", "train")).lower()
+#         ckpt_path = params.get("CKPT_PATH")
+#         ckpt_run_id = params.get("CKPT_MLFLOW_RUN_ID")
+#         ckpt_art = params.get("CKPT_MLFLOW_ARTIFACT", "model/model_state.pt")
+
+#         if mode_run == "infer":
+#             if ckpt_run_id:
+#                 ckpt_path = maybe_download_ckpt_from_mlflow(str(ckpt_run_id), str(ckpt_art))
+#             if not ckpt_path:
+#                 raise ValueError("infer mode requires --ckpt or --mlflow_run_id")
+#             loaded_model, loaded_feature_dim, _ = load_model_from_ckpt(str(ckpt_path), device=device)
+#             if int(loaded_feature_dim) != int(feature_dim):
+#                 raise ValueError(f"feature_dim mismatch: ckpt={loaded_feature_dim} vs current={feature_dim}")
+#             model.load_state_dict(loaded_model.state_dict(), strict=True)
+#             model.eval()
+#             mlflow.log_param("infer_only", 1)
+#             mlflow.log_param("ckpt_path", str(ckpt_path))
+#             # print(f"[InferOnly] loaded ckpt={ckpt_path}")
+
+
+#         optimizer = torch.optim.Adam(model.parameters(), lr=params['LR'])
+#         criterion_list = ListMLELoss().to(device)
+#         criterion_mse = nn.MSELoss().to(device)
+
+#         train_dataset = get_dataset_with_baseline(monthly_graphs, influencer_indices, target_idx=-2)
+
+#         # sampler = None
+#         # if bool(params.get("USE_SAMPLER", False)):
+
+#         #     y_all = train_dataset.tensors[1].detach().cpu().numpy()
+#         #     list_size = int(params["LIST_SIZE"])
+
+#         #     batch_sampler = TailMixedListBatchSampler(
+#         #         y=y_all,
+#         #         list_size=list_size,
+#         #         q_hi=float(params.get("RIGHT_Q", 0.90)),
+#         #         q_lo=float(params.get("LEFT_Q",  0.10)),
+#         #         n_hi=1,
+#         #         n_lo=0,  # bottom tail 要らなければ 0 でOK
+#         #         seed=0,
+#         #         replacement=True
+#         #     )
+
+#         # dataloader = DataLoader(train_dataset, batch_sampler=batch_sampler)
+
+#         train_input_graphs = monthly_graphs[:-2]
+#         gpu_graphs = [g.to(device) for g in train_input_graphs]
+
+#         # --- Speed/MPS fix: build training sequences ONLY for influencer nodes (not all nodes) ---
+#         # We keep dataset indices as *global node ids*, so we create a global->local mapping here.
+#         inf_global = torch.tensor(influencer_indices, dtype=torch.long, device=device)
+#         # graphs share the same node set across months, so num_nodes is stable
+#         num_nodes_all = int(gpu_graphs[0].num_nodes)
+#         global2local = torch.full((num_nodes_all,), -1, dtype=torch.long, device=device)
+#         global2local[inf_global] = torch.arange(inf_global.numel(), device=device, dtype=torch.long)
+#         # (sanity) all influencer indices must map
+#         if int((global2local[inf_global] < 0).sum().item()) != 0:
+#             raise RuntimeError("global2local mapping failed for some influencer indices.")
+
+        
+#         if mode_run != "infer":
+#             # print("Starting Training...")
+#             model.train()
+
+#             # Ensure batch_size is a multiple of LIST_SIZE (required by ListMLE reshape)
+#             list_size = int(params["LIST_SIZE"])
+#             if len(train_dataset) < list_size:
+#                 raise RuntimeError(f"train_dataset too small ({len(train_dataset)}) for LIST_SIZE={list_size}")
+
+#             safe_bs = min(int(params["BATCH_SIZE"]), len(train_dataset))
+#             safe_bs = (safe_bs // list_size) * list_size
+#             safe_bs = max(list_size, safe_bs)
+
+#             use_sampler = bool(params.get("USE_SAMPLER", False))
+
+#             if use_sampler:
+#                 y_all = train_dataset.tensors[1].detach().cpu().numpy()
+#                 batch_sampler = TailMixedListBatchSampler(
+#                     y=y_all,
+#                     list_size=list_size,
+#                     batch_size=safe_bs,
+#                     q_hi=float(params.get("RIGHT_Q", 0.90)),
+#                     q_lo=float(params.get("LEFT_Q",  0.10)),
+#                     n_hi=int(params.get("N_HIGH", 1)),
+#                     n_lo=int(params.get("N_LOW", 0)),  # bottom tail 要らなければ 0 でOK
+#                     seed=int(params.get("SEED", 0)),
+#                     replacement=True
+#                 )
+#                 dataloader = DataLoader(train_dataset, batch_sampler=batch_sampler)
+#             else:
+#                 dataloader = DataLoader(train_dataset, batch_size=safe_bs, shuffle=True, drop_last=True)
+
+#             for epoch in range(params["EPOCHS"]):
+#                 model.train()
+#                 total_loss = 0.0
+#                 optimizer.zero_grad(set_to_none=True)
+
+#                 # Build per-month embeddings ONLY for influencers (reduces tensor sizes drastically on Mac/MPS)
+#                 seq_emb, raw_emb = [], []
+#                 for g in gpu_graphs:
+#                     p_x = model.projection_layer(g.x)           # [N, P]
+#                     gcn_out = model.gcn_encoder(p_x, g.edge_index)  # [N, D]
+#                     raw_emb.append(p_x.index_select(0, inf_global))     # [Ninf, P]
+#                     seq_emb.append(gcn_out.index_select(0, inf_global))  # [Ninf, D]
+
+#                 # [Ninf, T, D] and [Ninf, T, P]
+#                 full_seq = torch.stack(seq_emb, dim=1)
+#                 full_raw = torch.stack(raw_emb, dim=1)
+
+#                 # One backward per epoch (full_seq/full_raw share one autograd graph)
+#                 loss_sum = None
+#                 num_batches = 0
+
+#                 # ===== A: tail weight (top 10% x 5) + pointwise Huber (log & linear)
+#                 # ---- Global thresholds for loss weighting (computed once) ----
+#                 RIGHT_Q = float(params.get("RIGHT_Q", 0.90))
+#                 RIGHT_W = float(params.get("RIGHT_W", 5.0))
+#                 LEFT_Q  = float(params.get("LEFT_Q",  0.10))
+#                 LEFT_W  = float(params.get("LEFT_W",  1.0))
+
+#                 y_all_np = train_dataset.tensors[1].detach().cpu().numpy().astype(float)
+#                 thr_hi_global = float(np.quantile(y_all_np, RIGHT_Q))
+#                 thr_lo_global = float(np.quantile(y_all_np, LEFT_Q))
+
+#                 # ---- fixed thresholds (global) on device ----
+#                 thr_hi_t = torch.tensor(thr_hi_global, device=device, dtype=torch.float32)
+#                 thr_lo_t = torch.tensor(thr_lo_global, device=device, dtype=torch.float32)
+
+#                 for batch in dataloader:
+#                     b_idx_global, b_target, b_baseline = batch
+
+#                     # Move to device (important for MPS indexing)
+#                     b_idx_global = b_idx_global.to(device)
+#                     b_target = b_target.to(device)
+#                     b_baseline = b_baseline.to(device)
+
+#                     # Map global node ids -> local influencer positions
+#                     b_local = global2local[b_idx_global]
+#                     if int((b_local < 0).sum().item()) != 0:
+#                         raise RuntimeError("Found indices not in influencer set (global2local == -1).")
+
+#                     b_seq = full_seq.index_select(0, b_local)   # [B, T, D]
+#                     b_raw = full_raw.index_select(0, b_local)   # [B, T, P]
+
+#                     preds, _ = model(b_seq, b_raw, baseline_scores=b_baseline)
+#                     preds = preds.view(-1)
+
+#                     # log_target = torch.log1p(b_target * 100.0)
+#                     # log_pred = torch.log1p(preds * 100.0)
+
+#                     # # ✅ Rank loss も log 空間に統一
+#                     # loss_rank = criterion_list(
+#                     #     log_pred.view(-1, list_size),
+#                     #     log_target.view(-1, list_size)
+#                     # )
+
+#                     # # pointwise はそのまま
+#                     # loss_point = criterion_mse(log_pred, log_target)
+
+#                     # loss = loss_rank + loss_point * float(params.get("POINTWISE_LOSS_WEIGHT", 1.0))
+
+
+
+#                     # y_all = train_dataset.tensors[1].detach().cpu().numpy().astype(float)
+#                     # thr_hi_global = float(np.quantile(y_all, RIGHT_Q))
+#                     # thr_lo_global = float(np.quantile(y_all, LEFT_Q))
+
+
+#                     # --- log space (keep your existing *100 scaling for consistency with rank loss)
+#                     log_target = torch.log1p(b_target * 100.0)
+#                     log_pred   = torch.log1p(preds * 100.0)
+
+
+#                     w = torch.ones_like(b_target)
+#                     w = torch.where(b_target >= thr_hi_t, b_target.new_full((), RIGHT_W), w)  # 右tail
+#                     w = torch.where(b_target <= thr_lo_t, b_target.new_full((), LEFT_W),  w)  # 左tail
+
+
+#                     # ✅ Rank loss (log space)
+#                     loss_rank = criterion_list(
+#                         log_pred.view(-1, list_size),
+#                         log_target.view(-1, list_size)
+#                     )
+
+#                     # pointwise log Huber (weighted)
+#                     loss_point_log = (w * F.smooth_l1_loss(log_pred, log_target, reduction="none")).mean()
+
+#                     # pointwise linear Huber (weighted)
+#                     loss_point_lin = (w * F.smooth_l1_loss(preds, b_target, reduction="none")).mean()
+
+#                     # ===== B: mixed loss weights
+#                     w_rank = float(params.get("W_RANK", 0.3))
+#                     w_lin  = float(params.get("W_LIN",  1.0))
+#                     w_log  = float(params.get("W_LOG",  0.2))
+
+#                     loss = (w_rank * loss_rank) + (w_log * loss_point_log) + (w_lin * loss_point_lin)
+
+
+
+
+#                     total_loss += float(loss.item())
+#                     num_batches += 1
+#                     loss_sum = loss if loss_sum is None else (loss_sum + loss)
+
+#                 if loss_sum is not None:
+#                     (loss_sum / float(max(1, num_batches))).backward()
+#                 optimizer.step()
+
+#                 # free large tensors
+#                 del full_seq, full_raw, seq_emb, raw_emb
+#                 if (epoch + 1) % 10 == 0:
+#                     avg_loss = total_loss / max(1, num_batches)
+#                     mlflow.log_metric("train_loss", avg_loss, step=epoch + 1)
+#                     # print(f"Epoch {epoch+1}/{params['EPOCHS']} Loss: {avg_loss:.4f}")
+
+#             # ----- Inference (Dec prediction) -----
+#         else:
+#             print("[InferOnly] training skipped")
+
+
+#         if mode_run != "infer":
+#             try:
+#                 # create checkpoint directory if not exists
+#                 os.makedirs(os.path.join("checkpoints", run_name), exist_ok=True)
+
+#                 print("\nSaving Model Checkpoint...")
+#                 # Save + keep locally (for reuse without re-training)
+#                 ckpt_local = os.path.join("checkpoints", run_name, "model_state.pt")
+#                 ckpt_local, cfg_local = save_model_checkpoint(
+#                     model, params, feature_dim=feature_dim, out_path=ckpt_local
+#                 )
+
+#                 # Also save a ".pth" copy (same content; convenient extension)
+#                 ckpt_pth = os.path.splitext(ckpt_local)[0] + ".pth"
+#                 try:
+#                     shutil.copy2(ckpt_local, ckpt_pth)
+#                 except Exception:
+#                     # fallback: re-save
+#                     torch.save(torch.load(ckpt_local, map_location="cpu"), ckpt_pth)
+
+#                 # Log to MLflow so infer-only runs can download by run_id
+#                 try:
+#                     mlflow.log_artifact(ckpt_local, artifact_path="model")
+#                     mlflow.log_artifact(ckpt_pth, artifact_path="model")
+#                     mlflow.log_artifact(cfg_local, artifact_path="model")
+
+#                     info_txt = os.path.join("checkpoints", run_name, "checkpoint_info.txt")
+#                     with open(info_txt, "w", encoding="utf-8") as f:
+#                         f.write(f"run_name={run_name}\n")
+#                         f.write(f"ckpt_local={ckpt_local}\n")
+#                         f.write(f"ckpt_pth={ckpt_pth}\n")
+#                         f.write("mlflow_artifacts:\n")
+#                         f.write("  - model/model_state.pt\n")
+#                         f.write("  - model/model_state.pth\n")
+#                         f.write("  - model/model_config.json\n")
+#                     mlflow.log_artifact(info_txt, artifact_path="model")
+#                     # print("[Checkpoint] logged artifacts: model/model_state.pt, model/model_state.pth, model/model_config.json (+ checkpoint_info.txt)")
+#                 except Exception as e:
+#                     print(f"⚠️ [Checkpoint] MLflow log failed (local checkpoint is kept): {e}")
+
+#                 print(f"[Checkpoint] local saved: {ckpt_local} (+ {ckpt_pth}) and {cfg_local}")
+#             except Exception as e:
+#                 print(f"⚠️ [Checkpoint] save/log failed: {e}")
+
+#         print("\nStarting Inference...")
+#         model.eval()
+
+#         test_dataset = get_dataset_with_baseline(monthly_graphs, influencer_indices, target_idx=-1)
+#         all_indices = test_dataset.tensors[0]
+#         all_targets = test_dataset.tensors[1]
+#         all_baselines = test_dataset.tensors[2]
+
+#         inf_input_graphs = monthly_graphs[:-1]
+
+#         with torch.no_grad():
+#             seq_emb_l, raw_emb_l = [], []
+#             for g in inf_input_graphs:
+#                 g = g.to(device)
+#                 p_x = model.projection_layer(g.x)
+#                 gcn_out = model.gcn_encoder(p_x, g.edge_index)
+#                 raw_emb_l.append(p_x.cpu())
+#                 seq_emb_l.append(gcn_out.cpu())
+
+#             f_seq = torch.stack(seq_emb_l)[:, influencer_indices].permute(1, 0, 2)
+#             f_raw = torch.stack(raw_emb_l)[:, influencer_indices].permute(1, 0, 2)
+
+#             preds_all = []
+#             attn_all = []
+#             infer_batch_size = 1024
+#             for i in range(0, len(all_indices), infer_batch_size):
+#                 end = min(i + infer_batch_size, len(all_indices))
+#                 b_seq = f_seq[i:end].to(device)
+#                 b_raw = f_raw[i:end].to(device)
+#                 b_base = all_baselines[i:end].to(device)
+
+#                 p, attn = model(b_seq, b_raw, b_base)
+#                 # 7で割る
+#                 p = p / 1.0
+#                 preds_all.append(p.cpu())
+#                 attn_all.append(attn.cpu())
+
+#             predicted_scores = torch.cat(preds_all).squeeze().numpy()
+#             attention_matrix = torch.cat(attn_all).squeeze().cpu().numpy()
+
+#             true_scores = all_targets.cpu().numpy()
+#             baseline_scores = all_baselines.cpu().numpy()
+#             all_indices_np = all_indices.detach().cpu().numpy().astype(np.int64)
+
+        
+#         # remove val which true score is 0
+#         nonzero_indices = np.where(true_scores > 0.0)[0]
+
+#         true_scores = true_scores[nonzero_indices]
+#         predicted_scores = predicted_scores[nonzero_indices]
+#         baseline_scores = baseline_scores[nonzero_indices]
+#         attention_matrix = attention_matrix[nonzero_indices]
+
+#         all_indices_nz = all_indices_np[nonzero_indices]   # [Nnz]
+#         attention_matrix_nz = attention_matrix             # [Nnz, T]
+#         # true_scores / predicted_scores / baseline_scores もすでに [Nnz]
+
+#         # ===== (3) User-wise pos importance (Δ) export =====
+#         # all_indices_nz は 반드시 "f_seq_nz / f_raw_nz / baseline_scores" と同じ順序・同じ長さであること
+#         all_indices_nz = all_indices_np[nonzero_indices]  # [Nnz]
+#         usernames_nz = [idx_to_node.get(int(nid), str(int(nid))) for nid in all_indices_nz]
+
+#         # sanity
+#         Nnz = int(f_seq_nz.shape[0])
+#         T = int(f_seq_nz.shape[1])
+#         assert len(all_indices_nz) == Nnz, f"index mismatch: all_indices_nz={len(all_indices_nz)} vs f_seq_nz={Nnz}"
+
+#         # 1) NPZ (streamlit用に最強)
+#         npz_path = f"userwise_pos_delta_{run_name}.npz"
+#         np.savez_compressed(
+#             npz_path,
+#             node_id=all_indices_nz.astype(np.int64),
+#             username=np.array(usernames_nz, dtype=object),
+#             # modeごとに保存（例）
+#             **{f"delta_{mode}": deltas_np[mode].astype(np.float32) for mode in baseline_modes}
+#         )
+#         mlflow.log_artifact(npz_path, artifact_path="xai/pos_importance_userwise")
+#         os.remove(npz_path)
+
+#         # 2) CSV long（論文・集計・debug用）
+#         rows = []
+#         for mode in baseline_modes:
+#             d = deltas_np[mode]  # [Nnz, T]
+#             # ざっくりmelt
+#             for pos_i in range(T):
+#                 rows.append(pd.DataFrame({
+#                     "node_id": all_indices_nz,
+#                     "username": usernames_nz,
+#                     "pos": pos_i,
+#                     "baseline_mode": mode,
+#                     "delta": d[:, pos_i],
+#                 }))
+#         df_user_pos = pd.concat(rows, ignore_index=True)
+
+#         user_csv = f"userwise_pos_delta_{run_name}.csv"
+#         df_user_pos.to_csv(user_csv, index=False, float_format="%.8e", encoding="utf-8-sig")
+#         mlflow.log_artifact(user_csv, artifact_path="xai/pos_importance_userwise")
+#         os.remove(user_csv)
+
+
+
+#         # ===== pos importance (baseline sensitivity) =====
+#         # f_seq, f_raw are [Ninf, T, D/P] on CPU currently (you built them from seq_emb_l/raw_emb_l)
+#         # nonzero_indices is applied to true/pred/baseline; do the same to embeddings.
+
+#         # IMPORTANT: ensure ordering matches: your predicted_scores are produced in the same order as test_dataset indices.
+#         # In your code, after building f_seq/f_raw, you iterate batches in the same order as all_indices.
+#         # And then you filter by nonzero_indices (which indexes into that same order).
+#         # => so we can apply nonzero_indices to f_seq/f_raw as well.
+
+#         # ✅安全: all_indices で gather
+#         emb_seq_all = torch.stack(seq_emb_l, dim=0)  # [T, N, D]
+#         emb_raw_all = torch.stack(raw_emb_l, dim=0)  # [T, N, P]
+
+#         idx = all_indices.long()                      # [Ntest]
+#         f_seq = emb_seq_all[:, idx].permute(1, 0, 2).contiguous()  # [Ntest, T, D]
+#         f_raw = emb_raw_all[:, idx].permute(1, 0, 2).contiguous()  # [Ntest, T, P]
+#         base_nz  = torch.tensor(baseline_scores, dtype=torch.float32)  # [Nnz] CPU
+
+#         # choose baseline modes to test
+#         baseline_modes = ["zero", "user_mean", "global_pos_mean", "shuffle_pos"]
+
+#         df_pos_long, deltas_np = compute_pos_importance_from_embeddings(
+#             model=model,
+#             f_seq=f_seq_nz,
+#             f_raw=f_raw_nz,
+#             baseline_scores=base_nz,
+#             device=device,
+#             baseline_modes=baseline_modes,
+#             batch_size=1024,
+#             seed=int(params.get("SEED", 0)),
+#         )
+
+#         pos_csv = f"pos_importance_baselines_{run_name}.csv"
+#         df_pos_long.to_csv(pos_csv, index=False, float_format="%.8e")
+#         mlflow.log_artifact(pos_csv, artifact_path="xai/pos_importance")
+#         os.remove(pos_csv)
+
+#         # optional: log quick plot (median deltas per pos)
+#         try:
+#             import matplotlib
+#             matplotlib.use("Agg")
+#             import matplotlib.pyplot as plt
+
+#             for mode in baseline_modes:
+#                 d = df_pos_long[df_pos_long["baseline_mode"] == mode].sort_values("pos")
+#                 plt.figure()
+#                 plt.plot(d["pos"].values, d["delta_median"].values, marker="o")
+#                 plt.xlabel("pos (0=oldest -> T-1=newest)")
+#                 plt.ylabel("median(pred_orig - pred_replaced)")
+#                 plt.title(f"Pos importance (median) / baseline={mode}")
+#                 plt.tight_layout()
+#                 fig_path = f"pos_importance_median_{mode}_{run_name}.png"
+#                 plt.savefig(fig_path, dpi=200)
+#                 plt.close()
+#                 mlflow.log_artifact(fig_path, artifact_path="xai/pos_importance")
+#                 os.remove(fig_path)
+
+#         except Exception as e:
+#             print("pos importance plot failed:", e)
+
+#         # optional: baseline agreement metrics (Spearman between modes)
+#         try:
+#             from scipy.stats import spearmanr
+#             modes = baseline_modes
+#             # pivot: rows=pos, cols=mode, values=delta_median
+#             piv = df_pos_long.pivot_table(index="pos", columns="baseline_mode", values="delta_median")
+#             agree_rows = []
+#             for i in range(len(modes)):
+#                 for j in range(i+1, len(modes)):
+#                     a = piv[modes[i]].values
+#                     b = piv[modes[j]].values
+#                     rho = float(spearmanr(a, b).correlation)
+#                     agree_rows.append({"mode_a": modes[i], "mode_b": modes[j], "spearman_rho": rho})
+#             df_agree = pd.DataFrame(agree_rows)
+#             agree_csv = f"pos_importance_baseline_agreement_{run_name}.csv"
+#             df_agree.to_csv(agree_csv, index=False, float_format="%.8e")
+#             mlflow.log_artifact(agree_csv, artifact_path="xai/pos_importance")
+#             os.remove(agree_csv)
+
+#             # also log as metrics (optional)
+#             for r in agree_rows:
+#                 mlflow.log_metric(f"pos_imp_spearman_{r['mode_a']}_vs_{r['mode_b']}", r["spearman_rho"])
+
+#         except Exception as e:
+#             print("baseline agreement failed:", e)
+
+
+#         # 追加：ユーザIDも同じフィルタを適用（ここが超重要）
+#         all_indices_np = all_indices_np[nonzero_indices]
+
+#         # ===== 追加：予測CSVの保存 =====
+#         usernames = [idx_to_node.get(int(nid), str(int(nid))) for nid in all_indices_np]
+
+#         df_pred_csv = pd.DataFrame({
+#             "node_id": all_indices_np,
+#             "username": usernames,
+#             "true_score": true_scores,
+#             "pred_score": predicted_scores,
+#         })
+
+#         pred_csv_path = os.path.join("predictions", f"pred_dec2017_{run_name}.csv")
+#         os.makedirs(os.path.dirname(pred_csv_path), exist_ok=True)
+#         df_pred_csv.to_csv(pred_csv_path, index=False, encoding="utf-8-sig")
+#         mlflow.log_artifact(pred_csv_path, artifact_path="predictions")
+#         print("[write]", pred_csv_path, "rows=", len(df_pred_csv))
+
+
+
+#         # ----- Metrics -----
+#         extra = compute_eval_metrics(
+#             y_true=true_scores,
+#             y_pred=predicted_scores,
+#             baseline=baseline_scores,
+#             ks=(10, 50, 100),
+#             prefix="test_dec2017",
+#         )
+
+#         mlflow.log_metrics(extra)
+
+#         # 既存の final_test_metrics も拡張
+#         final_test_metrics = dict(extra)
+
+#         df_pred = pd.DataFrame({
+#             "true_score": true_scores,
+#             "pred_score": predicted_scores,
+#         })
+
+#         metrics = compute_two_ndcgs(df_pred, k_list=(1,10,50,100,200))
+        
+#         print(metrics)
+
+#         # mlflow を使ってるなら
+#         for k, v in metrics.items():
+#             mlflow.log_metric(k, v)
+
+
+#         # ----- Plots -----
+#         # print("\n--- 📊 Generating and Logging Plots ---")
+#         last_input_graph = inf_input_graphs[-1]
+#         follower_counts = last_input_graph.x[all_indices, follower_feat_idx].cpu().numpy()
+        
+#         follower_counts = follower_counts[nonzero_indices]
+        
+#         # NOTE: followers was already log1p()'d when building static features
+#         log_follower_counts = follower_counts
+
+
+#         epsilon = 1e-9
+#         true_growth = (true_scores - baseline_scores) / (baseline_scores + epsilon)
+#         pred_growth = (predicted_scores - baseline_scores) / (baseline_scores + epsilon)
+
+#         plot_files = []
+#         plot_files.append(generate_enhanced_scatter_plot(true_scores, predicted_scores,
+#                                                          "True Engagement Score", "Predicted Score",
+#                                                          run_name, "score_basic"))
+#         att_bar_file, att_heat_file, att_csv_file, att_raw_file = plot_attention_weights(attention_matrix, run_name)
+#         for f in [att_bar_file, att_heat_file, att_csv_file, att_raw_file]:
+#             if f is None:
+#                 continue
+#             mlflow.log_artifact(f)
+#             os.remove(f)
+
+#         plot_files.append(generate_enhanced_scatter_plot(true_scores, predicted_scores,
+#                                                          "True Engagement Score", "Predicted Score",
+#                                                          run_name, "score_by_followers",
+#                                                          color_data=log_follower_counts,
+#                                                          color_label="log1p(Followers)",
+#                                                          title_suffix="(Colored by Followers)"))
+
+#         plot_files.append(generate_enhanced_scatter_plot(true_scores, predicted_scores,
+#                                                          "True Engagement Score", "Predicted Score",
+#                                                          run_name, "score_by_growth",
+#                                                          color_data=true_growth,
+#                                                          color_label="True Growth Rate",
+#                                                          title_suffix="(Colored by Growth Rate)"))
+
+#         plot_files.append(generate_enhanced_scatter_plot(true_growth, pred_growth,
+#                                                          "True Growth Rate", "Predicted Growth Rate",
+#                                                          run_name, "growth_by_followers",
+#                                                          color_data=log_follower_counts,
+#                                                          color_label="log1p(Followers)",
+#                                                          title_suffix="(Colored by Followers)"))
+
+#         for f in plot_files:
+#             if f is not None and os.path.exists(f):
+#                 mlflow.log_artifact(f)
+#                 os.remove(f)
+
+#         # ----- Metrics -----
+#         # print("\n--- 📊 Evaluation Metrics ---")
+#         mae = mean_absolute_error(true_scores, predicted_scores)
+#         rmse = np.sqrt(mean_squared_error(true_scores, predicted_scores))
+#         p_corr, _ = pearsonr(true_scores, predicted_scores)
+#         s_corr, _ = spearmanr(true_scores, predicted_scores)
+
+#         mlflow.log_metrics({"mae": mae, "rmse": rmse, "pearson_corr": p_corr, "spearman_corr": s_corr})
+#         # print(f"MAE: {mae:.6f}, RMSE: {rmse:.6f}, Pearson: {p_corr:.4f}, Spearman: {s_corr:.4f}")
+
+#         final_test_metrics = {
+#             "mae": float(mae),
+#             "rmse": float(rmse),
+#             "pearson_corr": float(p_corr),
+#             "spearman_corr": float(s_corr),
+#         }
+
+#         # ----- Explanation target: hub influencer in Nov graph -----
+#         feature_names = static_cols + dynamic_cols
+#         target_graph = monthly_graphs[-2]  # Nov
+#         edge_index = target_graph.edge_index.to(device)
+#         d = degree(edge_index[1], num_nodes=target_graph.num_nodes)
+
+#         if target_node_idx is not None:
+#             target_node_global_idx = int(target_node_idx)
+#             max_degree = int(d[target_node_global_idx].item()) if target_node_global_idx < target_graph.num_nodes else -1
+#             # print(f"\n🎯 Selected User (Node {target_node_global_idx}) (degree={max_degree}) [manual]")
+#         else:
+#             max_degree = -1
+#             target_node_global_idx = None
+#             for idx in influencer_indices:
+#                 deg = int(d[idx].item())
+#                 if deg > max_degree:
+#                     max_degree = deg
+#                     target_node_global_idx = int(idx)
+#             # print(f"\n🎯 Selected Hub User (Node {target_node_global_idx}) with {int(max_degree)} edges. [auto]")
+
+#         # inside run_experiment, after deciding target_node_global_idx:
+#         idx_to_node = {int(v): str(k) for k, v in node_to_idx.items()}
+#         target_name = idx_to_node.get(int(target_node_global_idx), None)
+#         if target_name is not None:
+#             mlflow.log_param("xai_target_name", target_name)
+
+
+
+#         input_graphs = monthly_graphs[:-1]  # Jan..Nov (T=11)
+#         T = len(input_graphs)
+
+#         # input_graphs: Jan..Nov の Data リスト
+#         # feature_names: static_cols + dynamic_cols
+#         target = int(target_node_global_idx)
+
+#         mat = np.stack([g.x[target].detach().cpu().numpy() for g in input_graphs], axis=0)  # [T,F]
+
+#         df_diag = pd.DataFrame({
+#             "feature": feature_names,
+#             "std_over_T": mat.std(axis=0),
+#             "nonzero_T": (mat != 0).sum(axis=0),
+#             "min": mat.min(axis=0),
+#             "max": mat.max(axis=0),
+#         }).sort_values(["std_over_T","nonzero_T"], ascending=False)
+
+#         print(df_diag.head(30))
+#         print("dead features =", ((df_diag["std_over_T"]==0) | (df_diag["nonzero_T"]==0)).sum(), "/", len(df_diag))
+
+
+#         sens_df = None
+#         sens_selected = None
+
+#         try:
+#             # pick attention weights row for this node (if exists)
+#             attn_w = None
+#             pos_in_all = (all_indices == target_node_global_idx).nonzero(as_tuple=False)
+#             if pos_in_all.numel() > 0:
+#                 row = int(pos_in_all[0].item())
+#                 attn_w = torch.tensor(attention_matrix[row], dtype=torch.float32)
+
+#             if params.get("explain_use_sensitivity", True):
+#                 try:
+#                     sens_df, sens_selected, _pred_full, _alpha = compute_time_step_sensitivity(
+#                         model=model,
+#                         input_graphs=input_graphs,
+#                         target_node_idx=target_node_global_idx,
+#                         device=device,
+#                         topk=int(params.get("xai_topk_pos", 3)),
+#                         score_mode=str(params.get("sensitivity_score_mode", "alpha_x_delta")),
+#                         min_delta=float(params.get("sensitivity_min_delta", 1e-4)),
+#                     )
+#                 except Exception as e:
+#                     # print(f"[Explain] sensitivity computation skipped: {e}")
+#                     sens_df, sens_selected = None, None
+
+#             if attn_w is None:
+#                 positions_attn = list(range(min(3, T)))
+#             else:
+#                 positions_attn = _select_positions_by_attention(
+#                     attn_w, T,
+#                     topk=int(params.get("xai_topk_pos", 3)),
+#                     min_w=float(params.get("xai_attn_min_w", 0.0)),
+#                 )
+
+#             positions_to_explain = positions_attn
+#             if sens_selected is not None and len(sens_selected) > 0:
+#                 positions_to_explain = sens_selected[: int(params.get("xai_topk_pos", 3))]
+
+#             # print(f"[Explain] positions_to_explain={positions_to_explain} / T={T}")
+
+#             mlflow.log_param("xai_positions", ",".join(map(str, positions_to_explain)))
+#             mlflow.log_param("xai_target_node", int(target_node_global_idx))
+#             # --- plot attention for selected user (nonzero-filtered set) ---
+#             pos = np.where(all_indices_nz == int(target_node_global_idx))[0]
+#             if len(pos) == 0:
+#                 print("⚠️ target user not found in nonzero-filtered set (true_score==0 etc.)")
+#             else:
+#                 row = int(pos[0])
+#                 attn_user = attention_matrix_nz[row]  # [T]
+
+#                 plt.figure()
+#                 plt.plot(range(len(attn_user)), attn_user, marker="o")
+#                 plt.title(f"Attention weights user={idx_to_node.get(int(target_node_global_idx), str(int(target_node_global_idx)))}")
+#                 plt.xlabel("pos (0=oldest -> T-1=newest)")
+#                 plt.ylabel("attention weight")
+#                 plt.tight_layout()
+
+#                 fig = plt.gcf()
+#                 mlflow.log_figure(fig, artifact_file=f"xai/attention_user_{int(target_node_global_idx)}_{run_name}.png")
+#                 plt.close()
+#             # export attention alpha + sensitivity table (optional)
+#             if attn_w is not None:
+#                 labels = [f"T-{T-1-i}" for i in range(T)]
+#                 df_alpha = pd.DataFrame({
+#                     "pos": list(range(T)),
+#                     "label": labels,
+#                     "alpha": attn_w.detach().cpu().numpy().astype(float),
+#                     "selected_for_explain": [int(i in positions_to_explain) for i in range(T)],
+#                 })
+#                 if sens_df is not None and (not sens_df.empty):
+#                     df_alpha = df_alpha.merge(sens_df, on="pos", how="left")
+
+#                 alpha_csv = f"xai_attention_alpha_node_{int(target_node_global_idx)}_{run_name}.csv"
+#                 df_alpha.to_csv(alpha_csv, index=False, float_format="%.8e")
+#                 mlflow.log_artifact(alpha_csv, artifact_path="xai")
+#                 os.remove(alpha_csv)
+
+#             # run MaskOpt for selected months
+#             for explain_pos in positions_to_explain:
+#                 tag = f"pos_{explain_pos}"
+#                 df_feat, df_edge, meta = maskopt_e2e_explain(
+#                     model=model,
+#                     input_graphs=input_graphs,
+#                     target_node_idx=target_node_global_idx,
+#                     explain_pos=int(explain_pos),
+#                     feature_names=feature_names,
+#                     node_to_idx=node_to_idx,
+#                     device=device,
+#                     use_subgraph=True,
+#                     num_hops=1,
+#                     edge_mask_scope="incident",
+#                     edge_grouping="neighbor",
+#                     fid_weight=2000.0,
+#                     coeffs={"edge_size":0.08,"edge_ent":0.15,"node_feat_size":0.02,"node_feat_ent":0.15},
+#                     budget_feat=10, budget_edge=20, budget_weight=1.0,
+#                     impact_reference="masked",
+#                     use_contrastive=False,
+#                     mlflow_log=True,
+#                     tag=tag,
+#                 )
+
+#                 # print(tag, meta["orig_pred"], meta["best_pred"])
+#                 if df_feat is not None and not df_feat.empty:
+#                     print(df_feat.head(10).to_string(index=False, float_format=lambda v: f"{v:.8e}"))
+#                 if df_edge is not None and not df_edge.empty:
+#                     print(df_edge.head(10).to_string(index=False, float_format=lambda v: f"{v:.8e}"))
+
+#                 # quick bar plots (paper-friendly)
+#                 mlflow_log_maskopt_plots(
+#                     df_feat=df_feat,
+#                     df_edge=df_edge,
+#                     meta=meta,
+#                     tag=tag,
+#                     topk_feat=50,
+#                     topk_edge=50,
+#                     artifact_path="xai",
+#                     fname_prefix=f"node_{target_node_global_idx}",
+#                 )
+
+#         except Exception as e:
+#             print(f"💥 Explanation Error: {e}")
+
+#         # always log eval scatter
+#         mlflow_log_pred_scatter(
+#             y_true=true_scores,
+#             y_pred=predicted_scores,
+#             tag="test_dec2017",
+#             step=params.get("EPOCHS", None),
+#             artifact_path="plots",
+#         )
+
+#         # Cleanup
+#         del model, optimizer, criterion_list, criterion_mse
+#         if 'gpu_graphs' in locals():
+#             del gpu_graphs
+#         if 'f_seq' in locals():
+#             del f_seq
+#         gc.collect()
+#         if torch.cuda.is_available():
+#             torch.cuda.empty_cache()
+#         # print(f"🧹 Memory cleared after {run_name}.")
+
+#     return run_id, final_test_metrics
+
+# def run_experiment(params, graphs_data, target_node_idx, experiment_id=None):
+#     ...
+#     monthly_graphs, influencer_indices, node_to_idx, feature_dim, follower_feat_idx, static_cols, dynamic_cols = graphs_data
+#     idx_to_node = {int(v): str(k) for k, v in node_to_idx.items()}
+
+#     current_time_str = datetime.datetime.now().strftime("%Y%m%d_%H%M")
+#     run_name = f"{params.get('name_prefix', 'Run')}_{current_time_str}"
+
+#     with mlflow.start_run(run_name=run_name, experiment_id=experiment_id):
+#         run_id = mlflow.active_run().info.run_id
+#         mlflow.log_params(params)
+
+#         model = HardResidualInfluencerModel(
+#             feature_dim=feature_dim,
+#             gcn_dim=params['GCN_DIM'],
+#             rnn_dim=params['RNN_DIM'],
+#             num_gcn_layers=params['NUM_GCN_LAYERS'],
+#             dropout_prob=params['DROPOUT_PROB'],
+#             projection_dim=params['PROJECTION_DIM']
+#         ).to(device)
+
+#         mode_run = str(params.get("MODE", "train")).lower()
+#         ckpt_path = params.get("CKPT_PATH")
+#         ckpt_run_id = params.get("CKPT_MLFLOW_RUN_ID")
+#         ckpt_art = params.get("CKPT_MLFLOW_ARTIFACT", "model/model_state.pt")
+
+#         if mode_run == "infer":
+#             if ckpt_run_id:
+#                 ckpt_path = maybe_download_ckpt_from_mlflow(str(ckpt_run_id), str(ckpt_art))
+#             if not ckpt_path:
+#                 raise ValueError("infer mode requires --ckpt or --mlflow_run_id")
+#             loaded_model, loaded_feature_dim, _ = load_model_from_ckpt(str(ckpt_path), device=device)
+#             if int(loaded_feature_dim) != int(feature_dim):
+#                 raise ValueError(f"feature_dim mismatch: ckpt={loaded_feature_dim} vs current={feature_dim}")
+#             model.load_state_dict(loaded_model.state_dict(), strict=True)
+#             model.eval()
+#             mlflow.log_param("infer_only", 1)
+#             mlflow.log_param("ckpt_path", str(ckpt_path))
+
+#         # ====== train blockはあなたのままでOK ======
+#         # （省略）
+#         # =======================================
+
+#         print("\nStarting Inference...")
+#         model.eval()
+
+#         test_dataset = get_dataset_with_baseline(monthly_graphs, influencer_indices, target_idx=-1)
+#         all_indices = test_dataset.tensors[0]      # [Ntest] (global node id)
+#         all_targets = test_dataset.tensors[1]      # [Ntest]
+#         all_baselines = test_dataset.tensors[2]    # [Ntest]
+
+#         inf_input_graphs = monthly_graphs[:-1]     # Jan..Nov (T=11)
+
+#         # --- 推論：全ノードembeddingを作る（CPUに置く） ---
+#         with torch.no_grad():
+#             seq_emb_l, raw_emb_l = [], []
+#             for g in inf_input_graphs:
+#                 g = g.to(device)
+#                 p_x = model.projection_layer(g.x)              # [N, P]
+#                 gcn_out = model.gcn_encoder(p_x, g.edge_index) # [N, D]
+#                 raw_emb_l.append(p_x.cpu())
+#                 seq_emb_l.append(gcn_out.cpu())
+
+#             # ✅ 安全策：all_indices で gather して f_seq/f_raw を作る（順序ズレ根絶）
+#             emb_seq_all = torch.stack(seq_emb_l, dim=0)  # [T, N, D]
+#             emb_raw_all = torch.stack(raw_emb_l, dim=0)  # [T, N, P]
+#             idx = all_indices.long()                     # [Ntest]
+
+#             f_seq = emb_seq_all[:, idx].permute(1, 0, 2).contiguous()  # [Ntest, T, D]
+#             f_raw = emb_raw_all[:, idx].permute(1, 0, 2).contiguous()  # [Ntest, T, P]
+
+#             preds_all = []
+#             attn_all = []
+#             infer_batch_size = 1024
+
+#             for i in range(0, len(all_indices), infer_batch_size):
+#                 end = min(i + infer_batch_size, len(all_indices))
+#                 b_seq = f_seq[i:end].to(device)
+#                 b_raw = f_raw[i:end].to(device)
+#                 b_base = all_baselines[i:end].to(device)
+
+#                 p, attn = model(b_seq, b_raw, b_base)
+#                 preds_all.append(p.detach().cpu())
+#                 attn_all.append(attn.detach().cpu())
+
+#             predicted_scores = torch.cat(preds_all).view(-1).numpy()   # [Ntest]
+#             attention_matrix = torch.cat(attn_all).numpy()             # [Ntest, T]
+
+#             true_scores = all_targets.detach().cpu().view(-1).numpy()
+#             baseline_scores = all_baselines.detach().cpu().view(-1).numpy()
+#             all_indices_np = all_indices.detach().cpu().numpy().astype(np.int64)
+
+#         # ===== nonzero filter（これ以降は “nz” だけ使う） =====
+#         nonzero_indices = np.where(true_scores > 0.0)[0]
+
+#         true_scores_nz = true_scores[nonzero_indices]
+#         pred_scores_nz = predicted_scores[nonzero_indices]
+#         base_scores_nz = baseline_scores[nonzero_indices]
+#         all_indices_nz = all_indices_np[nonzero_indices]          # [Nnz]
+#         attention_matrix_nz = attention_matrix[nonzero_indices]   # [Nnz, T]
+
+#         # ===== target user決定（あなたの既存ロジックを残してOK） =====
+#         feature_names = static_cols + dynamic_cols
+#         target_graph = monthly_graphs[-2]  # Nov
+#         edge_index = target_graph.edge_index.to(device)
+#         d = degree(edge_index[1], num_nodes=target_graph.num_nodes)
+
+#         if target_node_idx is not None:
+#             target_node_global_idx = int(target_node_idx)
+#         else:
+#             # hub auto
+#             max_degree = -1
+#             target_node_global_idx = None
+#             for idx0 in influencer_indices:
+#                 deg = int(d[int(idx0)].item())
+#                 if deg > max_degree:
+#                     max_degree = deg
+#                     target_node_global_idx = int(idx0)
+
+#         target_name = idx_to_node.get(int(target_node_global_idx), None)
+#         if target_name is not None:
+#             mlflow.log_param("xai_target_name", target_name)
+#         mlflow.log_param("xai_target_node", int(target_node_global_idx))
+
+#         # ===== (A) “推論したuserのattention表示” (target user のみ) =====
+#         pos_nz = np.where(all_indices_nz == int(target_node_global_idx))[0]
+#         if len(pos_nz) == 0:
+#             print("⚠️ target user not found in nonzero-filtered set (true_score==0 etc.)")
+#             attn_w = None
+#         else:
+#             row = int(pos_nz[0])
+#             attn_user = attention_matrix_nz[row]  # [T]
+#             attn_w = torch.tensor(attn_user, dtype=torch.float32)
+
+#             plt.figure()
+#             plt.plot(range(len(attn_user)), attn_user, marker="o")
+#             plt.title(f"Attention weights user={idx_to_node.get(int(target_node_global_idx), str(int(target_node_global_idx)))}")
+#             plt.xlabel("pos (0=oldest -> T-1=newest)")
+#             plt.ylabel("attention weight")
+#             plt.tight_layout()
+#             fig = plt.gcf()
+#             mlflow.log_figure(fig, artifact_file=f"xai/attention_user_{int(target_node_global_idx)}_{run_name}.png")
+#             plt.close()
+
+#         # ===== (B) pos importance (baseline sensitivity) =====
+#         f_seq_nz = f_seq[nonzero_indices].contiguous()  # [Nnz, T, D]
+#         f_raw_nz = f_raw[nonzero_indices].contiguous()  # [Nnz, T, P]
+#         base_nz  = torch.tensor(base_scores_nz, dtype=torch.float32)   # [Nnz]
+
+#         baseline_modes = ["zero", "user_mean", "global_pos_mean", "shuffle_pos"]
+
+#         df_pos_long, deltas_np = compute_pos_importance_from_embeddings(
+#             model=model,
+#             f_seq=f_seq_nz,
+#             f_raw=f_raw_nz,
+#             baseline_scores=base_nz,
+#             device=device,
+#             baseline_modes=baseline_modes,
+#             batch_size=1024,
+#             seed=int(params.get("SEED", 0)),
+#         )
+
+#         # aggregate CSV（pos×mode の medianなど）
+#         pos_csv = f"pos_importance_baselines_{run_name}.csv"
+#         df_pos_long.to_csv(pos_csv, index=False, float_format="%.8e")
+#         mlflow.log_artifact(pos_csv, artifact_path="xai/pos_importance")
+#         os.remove(pos_csv)
+
+#         # ===== (C) これが本命：ユーザ別 pos重要度（Δ）export =====
+#         usernames_nz = [idx_to_node.get(int(nid), str(int(nid))) for nid in all_indices_nz]
+#         Nnz = int(f_seq_nz.shape[0])
+#         T = int(f_seq_nz.shape[1])
+#         assert len(all_indices_nz) == Nnz, f"index mismatch: {len(all_indices_nz)} vs {Nnz}"
+#         for mode in baseline_modes:
+#             assert deltas_np[mode].shape == (Nnz, T), f"{mode} shape={deltas_np[mode].shape} expected={(Nnz,T)}"
+
+#         # 1) NPZ（streamlit用に最強：user×pos の行列がそのまま）
+#         npz_path = f"userwise_pos_delta_{run_name}.npz"
+#         np.savez_compressed(
+#             npz_path,
+#             node_id=all_indices_nz.astype(np.int64),
+#             username=np.array(usernames_nz, dtype=object),
+#             **{f"delta_{mode}": deltas_np[mode].astype(np.float32) for mode in baseline_modes}
+#         )
+#         mlflow.log_artifact(npz_path, artifact_path="xai/pos_importance_userwise")
+#         os.remove(npz_path)
+
+#         # 2) CSV long（論文/集計/デバッグ向け）
+#         rows = []
+#         for mode in baseline_modes:
+#             d = deltas_np[mode]  # [Nnz, T]
+#             for pos_i in range(T):
+#                 rows.append(pd.DataFrame({
+#                     "node_id": all_indices_nz,
+#                     "username": usernames_nz,
+#                     "pos": pos_i,
+#                     "baseline_mode": mode,
+#                     "delta": d[:, pos_i],
+#                 }))
+#         df_user_pos = pd.concat(rows, ignore_index=True)
+#         user_csv = f"userwise_pos_delta_{run_name}.csv"
+#         df_user_pos.to_csv(user_csv, index=False, float_format="%.8e", encoding="utf-8-sig")
+#         mlflow.log_artifact(user_csv, artifact_path="xai/pos_importance_userwise")
+#         os.remove(user_csv)
+
+#         # ===== 予測CSV（nzで揃えて保存） =====
+#         df_pred_csv = pd.DataFrame({
+#             "node_id": all_indices_nz,
+#             "username": usernames_nz,
+#             "true_score": true_scores_nz,
+#             "pred_score": pred_scores_nz,
+#             "baseline_score": base_scores_nz,
+#         })
+#         pred_csv_path = os.path.join("predictions", f"pred_dec2017_{run_name}.csv")
+#         os.makedirs(os.path.dirname(pred_csv_path), exist_ok=True)
+#         df_pred_csv.to_csv(pred_csv_path, index=False, encoding="utf-8-sig")
+#         mlflow.log_artifact(pred_csv_path, artifact_path="predictions")
+#         print("[write]", pred_csv_path, "rows=", len(df_pred_csv))
+
+#         # ===== Metrics（nzで計算） =====
+#         extra = compute_eval_metrics(
+#             y_true=true_scores_nz,
+#             y_pred=pred_scores_nz,
+#             baseline=base_scores_nz,
+#             ks=(10, 50, 100),
+#             prefix="test_dec2017",
+#         )
+#         mlflow.log_metrics(extra)
+#         final_test_metrics = dict(extra)
+
+
+#         return run_id, final_test_metrics
+
 def run_experiment(params, graphs_data, target_node_idx, experiment_id=None):
-    ...
+    """
+    Full run_experiment (no omission) with:
+      - Fix for IndexError: boolean index mismatch (single consistent nonzero filter)
+      - User-wise attention plot (for selected user) using filtered set
+      - Pos-importance baseline replacement experiments
+      - ALSO per-selected-user plot for baseline replacement (delta vs pos for each baseline_mode)
+    """
+    import os
+    import gc
+    import json
+    import shutil
+    import datetime
+    import numpy as np
+    import pandas as pd
+    import torch
+    import torch.nn as nn
+    import torch.nn.functional as F
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    from sklearn.metrics import mean_absolute_error, mean_squared_error
+    from scipy.stats import pearsonr, spearmanr
+    from torch_geometric.utils import degree
+
     # Returns: (run_id, final_test_metrics_dict)
     run_id = None
     final_test_metrics = None
+
     monthly_graphs, influencer_indices, node_to_idx, feature_dim, follower_feat_idx, static_cols, dynamic_cols = graphs_data
-    
     idx_to_node = {int(v): str(k) for k, v in node_to_idx.items()}
-    
+
     current_time_str = datetime.datetime.now().strftime("%Y%m%d_%H%M")
     run_name = f"{params.get('name_prefix', 'Run')}_{current_time_str}"
 
     with mlflow.start_run(run_name=run_name, experiment_id=experiment_id):
         run_id = mlflow.active_run().info.run_id
         mlflow.log_params(params)
-        # print(f"\n🚀 Starting MLflow Run: {run_name}")
+
         if 'note' in params:
             print(f"Note: {params['note']}")
+
         model = HardResidualInfluencerModel(
             feature_dim=feature_dim,
             gcn_dim=params['GCN_DIM'],
@@ -2771,8 +4118,6 @@ def run_experiment(params, graphs_data, target_node_idx, experiment_id=None):
             model.eval()
             mlflow.log_param("infer_only", 1)
             mlflow.log_param("ckpt_path", str(ckpt_path))
-            # print(f"[InferOnly] loaded ckpt={ckpt_path}")
-
 
         optimizer = torch.optim.Adam(model.parameters(), lr=params['LR'])
         criterion_list = ListMLELoss().to(device)
@@ -2780,45 +4125,23 @@ def run_experiment(params, graphs_data, target_node_idx, experiment_id=None):
 
         train_dataset = get_dataset_with_baseline(monthly_graphs, influencer_indices, target_idx=-2)
 
-        # sampler = None
-        # if bool(params.get("USE_SAMPLER", False)):
-
-        #     y_all = train_dataset.tensors[1].detach().cpu().numpy()
-        #     list_size = int(params["LIST_SIZE"])
-
-        #     batch_sampler = TailMixedListBatchSampler(
-        #         y=y_all,
-        #         list_size=list_size,
-        #         q_hi=float(params.get("RIGHT_Q", 0.90)),
-        #         q_lo=float(params.get("LEFT_Q",  0.10)),
-        #         n_hi=1,
-        #         n_lo=0,  # bottom tail 要らなければ 0 でOK
-        #         seed=0,
-        #         replacement=True
-        #     )
-
-        # dataloader = DataLoader(train_dataset, batch_sampler=batch_sampler)
-
         train_input_graphs = monthly_graphs[:-2]
         gpu_graphs = [g.to(device) for g in train_input_graphs]
 
-        # --- Speed/MPS fix: build training sequences ONLY for influencer nodes (not all nodes) ---
-        # We keep dataset indices as *global node ids*, so we create a global->local mapping here.
+        # --- Speed/MPS fix: build training sequences ONLY for influencer nodes ---
         inf_global = torch.tensor(influencer_indices, dtype=torch.long, device=device)
-        # graphs share the same node set across months, so num_nodes is stable
         num_nodes_all = int(gpu_graphs[0].num_nodes)
         global2local = torch.full((num_nodes_all,), -1, dtype=torch.long, device=device)
         global2local[inf_global] = torch.arange(inf_global.numel(), device=device, dtype=torch.long)
-        # (sanity) all influencer indices must map
         if int((global2local[inf_global] < 0).sum().item()) != 0:
             raise RuntimeError("global2local mapping failed for some influencer indices.")
 
-        
+        # =========================
+        # Training (optional)
+        # =========================
         if mode_run != "infer":
-            # print("Starting Training...")
             model.train()
 
-            # Ensure batch_size is a multiple of LIST_SIZE (required by ListMLE reshape)
             list_size = int(params["LIST_SIZE"])
             if len(train_dataset) < list_size:
                 raise RuntimeError(f"train_dataset too small ({len(train_dataset)}) for LIST_SIZE={list_size}")
@@ -2828,7 +4151,6 @@ def run_experiment(params, graphs_data, target_node_idx, experiment_id=None):
             safe_bs = max(list_size, safe_bs)
 
             use_sampler = bool(params.get("USE_SAMPLER", False))
-
             if use_sampler:
                 y_all = train_dataset.tensors[1].detach().cpu().numpy()
                 batch_sampler = TailMixedListBatchSampler(
@@ -2838,7 +4160,7 @@ def run_experiment(params, graphs_data, target_node_idx, experiment_id=None):
                     q_hi=float(params.get("RIGHT_Q", 0.90)),
                     q_lo=float(params.get("LEFT_Q",  0.10)),
                     n_hi=int(params.get("N_HIGH", 1)),
-                    n_lo=int(params.get("N_LOW", 0)),  # bottom tail 要らなければ 0 でOK
+                    n_lo=int(params.get("N_LOW", 0)),
                     seed=int(params.get("SEED", 0)),
                     replacement=True
                 )
@@ -2851,24 +4173,20 @@ def run_experiment(params, graphs_data, target_node_idx, experiment_id=None):
                 total_loss = 0.0
                 optimizer.zero_grad(set_to_none=True)
 
-                # Build per-month embeddings ONLY for influencers (reduces tensor sizes drastically on Mac/MPS)
+                # Build per-month embeddings ONLY for influencers
                 seq_emb, raw_emb = [], []
                 for g in gpu_graphs:
-                    p_x = model.projection_layer(g.x)           # [N, P]
-                    gcn_out = model.gcn_encoder(p_x, g.edge_index)  # [N, D]
-                    raw_emb.append(p_x.index_select(0, inf_global))     # [Ninf, P]
+                    p_x = model.projection_layer(g.x)                 # [N, P]
+                    gcn_out = model.gcn_encoder(p_x, g.edge_index)    # [N, D]
+                    raw_emb.append(p_x.index_select(0, inf_global))   # [Ninf, P]
                     seq_emb.append(gcn_out.index_select(0, inf_global))  # [Ninf, D]
 
-                # [Ninf, T, D] and [Ninf, T, P]
-                full_seq = torch.stack(seq_emb, dim=1)
-                full_raw = torch.stack(raw_emb, dim=1)
+                full_seq = torch.stack(seq_emb, dim=1)  # [Ninf, T, D]
+                full_raw = torch.stack(raw_emb, dim=1)  # [Ninf, T, P]
 
-                # One backward per epoch (full_seq/full_raw share one autograd graph)
                 loss_sum = None
                 num_batches = 0
 
-                # ===== A: tail weight (top 10% x 5) + pointwise Huber (log & linear)
-                # ---- Global thresholds for loss weighting (computed once) ----
                 RIGHT_Q = float(params.get("RIGHT_Q", 0.90))
                 RIGHT_W = float(params.get("RIGHT_W", 5.0))
                 LEFT_Q  = float(params.get("LEFT_Q",  0.10))
@@ -2877,20 +4195,15 @@ def run_experiment(params, graphs_data, target_node_idx, experiment_id=None):
                 y_all_np = train_dataset.tensors[1].detach().cpu().numpy().astype(float)
                 thr_hi_global = float(np.quantile(y_all_np, RIGHT_Q))
                 thr_lo_global = float(np.quantile(y_all_np, LEFT_Q))
-
-                # ---- fixed thresholds (global) on device ----
                 thr_hi_t = torch.tensor(thr_hi_global, device=device, dtype=torch.float32)
                 thr_lo_t = torch.tensor(thr_lo_global, device=device, dtype=torch.float32)
 
                 for batch in dataloader:
                     b_idx_global, b_target, b_baseline = batch
-
-                    # Move to device (important for MPS indexing)
                     b_idx_global = b_idx_global.to(device)
                     b_target = b_target.to(device)
                     b_baseline = b_baseline.to(device)
 
-                    # Map global node ids -> local influencer positions
                     b_local = global2local[b_idx_global]
                     if int((b_local < 0).sum().item()) != 0:
                         raise RuntimeError("Found indices not in influencer set (global2local == -1).")
@@ -2901,58 +4214,26 @@ def run_experiment(params, graphs_data, target_node_idx, experiment_id=None):
                     preds, _ = model(b_seq, b_raw, baseline_scores=b_baseline)
                     preds = preds.view(-1)
 
-                    # log_target = torch.log1p(b_target * 100.0)
-                    # log_pred = torch.log1p(preds * 100.0)
-
-                    # # ✅ Rank loss も log 空間に統一
-                    # loss_rank = criterion_list(
-                    #     log_pred.view(-1, list_size),
-                    #     log_target.view(-1, list_size)
-                    # )
-
-                    # # pointwise はそのまま
-                    # loss_point = criterion_mse(log_pred, log_target)
-
-                    # loss = loss_rank + loss_point * float(params.get("POINTWISE_LOSS_WEIGHT", 1.0))
-
-
-
-                    # y_all = train_dataset.tensors[1].detach().cpu().numpy().astype(float)
-                    # thr_hi_global = float(np.quantile(y_all, RIGHT_Q))
-                    # thr_lo_global = float(np.quantile(y_all, LEFT_Q))
-
-
-                    # --- log space (keep your existing *100 scaling for consistency with rank loss)
                     log_target = torch.log1p(b_target * 100.0)
                     log_pred   = torch.log1p(preds * 100.0)
 
-
                     w = torch.ones_like(b_target)
-                    w = torch.where(b_target >= thr_hi_t, b_target.new_full((), RIGHT_W), w)  # 右tail
-                    w = torch.where(b_target <= thr_lo_t, b_target.new_full((), LEFT_W),  w)  # 左tail
+                    w = torch.where(b_target >= thr_hi_t, b_target.new_full((), RIGHT_W), w)
+                    w = torch.where(b_target <= thr_lo_t, b_target.new_full((), LEFT_W),  w)
 
-
-                    # ✅ Rank loss (log space)
                     loss_rank = criterion_list(
                         log_pred.view(-1, list_size),
                         log_target.view(-1, list_size)
                     )
 
-                    # pointwise log Huber (weighted)
                     loss_point_log = (w * F.smooth_l1_loss(log_pred, log_target, reduction="none")).mean()
-
-                    # pointwise linear Huber (weighted)
                     loss_point_lin = (w * F.smooth_l1_loss(preds, b_target, reduction="none")).mean()
 
-                    # ===== B: mixed loss weights
                     w_rank = float(params.get("W_RANK", 0.3))
                     w_lin  = float(params.get("W_LIN",  1.0))
                     w_log  = float(params.get("W_LOG",  0.2))
 
                     loss = (w_rank * loss_rank) + (w_log * loss_point_log) + (w_lin * loss_point_lin)
-
-
-
 
                     total_loss += float(loss.item())
                     num_batches += 1
@@ -2962,39 +4243,33 @@ def run_experiment(params, graphs_data, target_node_idx, experiment_id=None):
                     (loss_sum / float(max(1, num_batches))).backward()
                 optimizer.step()
 
-                # free large tensors
                 del full_seq, full_raw, seq_emb, raw_emb
                 if (epoch + 1) % 10 == 0:
                     avg_loss = total_loss / max(1, num_batches)
                     mlflow.log_metric("train_loss", avg_loss, step=epoch + 1)
-                    # print(f"Epoch {epoch+1}/{params['EPOCHS']} Loss: {avg_loss:.4f}")
 
-            # ----- Inference (Dec prediction) -----
         else:
             print("[InferOnly] training skipped")
 
-
+        # =========================
+        # Save checkpoint (optional)
+        # =========================
         if mode_run != "infer":
             try:
-                # create checkpoint directory if not exists
                 os.makedirs(os.path.join("checkpoints", run_name), exist_ok=True)
-
                 print("\nSaving Model Checkpoint...")
-                # Save + keep locally (for reuse without re-training)
+
                 ckpt_local = os.path.join("checkpoints", run_name, "model_state.pt")
                 ckpt_local, cfg_local = save_model_checkpoint(
                     model, params, feature_dim=feature_dim, out_path=ckpt_local
                 )
 
-                # Also save a ".pth" copy (same content; convenient extension)
                 ckpt_pth = os.path.splitext(ckpt_local)[0] + ".pth"
                 try:
                     shutil.copy2(ckpt_local, ckpt_pth)
                 except Exception:
-                    # fallback: re-save
                     torch.save(torch.load(ckpt_local, map_location="cpu"), ckpt_pth)
 
-                # Log to MLflow so infer-only runs can download by run_id
                 try:
                     mlflow.log_artifact(ckpt_local, artifact_path="model")
                     mlflow.log_artifact(ckpt_pth, artifact_path="model")
@@ -3010,7 +4285,6 @@ def run_experiment(params, graphs_data, target_node_idx, experiment_id=None):
                         f.write("  - model/model_state.pth\n")
                         f.write("  - model/model_config.json\n")
                     mlflow.log_artifact(info_txt, artifact_path="model")
-                    # print("[Checkpoint] logged artifacts: model/model_state.pt, model/model_state.pth, model/model_config.json (+ checkpoint_info.txt)")
                 except Exception as e:
                     print(f"⚠️ [Checkpoint] MLflow log failed (local checkpoint is kept): {e}")
 
@@ -3018,16 +4292,18 @@ def run_experiment(params, graphs_data, target_node_idx, experiment_id=None):
             except Exception as e:
                 print(f"⚠️ [Checkpoint] save/log failed: {e}")
 
+        # =========================
+        # Inference (Dec prediction)
+        # =========================
         print("\nStarting Inference...")
         model.eval()
 
         test_dataset = get_dataset_with_baseline(monthly_graphs, influencer_indices, target_idx=-1)
-        all_indices = test_dataset.tensors[0]
-        all_targets = test_dataset.tensors[1]
-        all_baselines = test_dataset.tensors[2]
+        all_indices = test_dataset.tensors[0]     # shape [Ntest]
+        all_targets = test_dataset.tensors[1]     # shape [Ntest]
+        all_baselines = test_dataset.tensors[2]   # shape [Ntest]
 
-        inf_input_graphs = monthly_graphs[:-1]
-
+        inf_input_graphs = monthly_graphs[:-1]  # Jan..Nov
         with torch.no_grad():
             seq_emb_l, raw_emb_l = [], []
             for g in inf_input_graphs:
@@ -3037,12 +4313,17 @@ def run_experiment(params, graphs_data, target_node_idx, experiment_id=None):
                 raw_emb_l.append(p_x.cpu())
                 seq_emb_l.append(gcn_out.cpu())
 
-            f_seq = torch.stack(seq_emb_l)[:, influencer_indices].permute(1, 0, 2)
-            f_raw = torch.stack(raw_emb_l)[:, influencer_indices].permute(1, 0, 2)
+            # f_seq/f_raw are aligned to influencer_indices order
+            f_seq = torch.stack(seq_emb_l)[:, influencer_indices].permute(1, 0, 2).contiguous()  # [Ninf, T, D]
+            f_raw = torch.stack(raw_emb_l)[:, influencer_indices].permute(1, 0, 2).contiguous()  # [Ninf, T, P]
 
+            # IMPORTANT:
+            # all_indices must be aligned with influencer_indices order for the slicing below to be correct.
+            # In your pipeline, test_dataset is built from influencer_indices, so this holds.
             preds_all = []
             attn_all = []
             infer_batch_size = 1024
+
             for i in range(0, len(all_indices), infer_batch_size):
                 end = min(i + infer_batch_size, len(all_indices))
                 b_seq = f_seq[i:end].to(device)
@@ -3050,110 +4331,114 @@ def run_experiment(params, graphs_data, target_node_idx, experiment_id=None):
                 b_base = all_baselines[i:end].to(device)
 
                 p, attn = model(b_seq, b_raw, b_base)
-                # 7で割る
                 p = p / 1.0
                 preds_all.append(p.cpu())
                 attn_all.append(attn.cpu())
 
-            predicted_scores = torch.cat(preds_all).squeeze().numpy()
-            attention_matrix = torch.cat(attn_all).squeeze().cpu().numpy()
+            predicted_scores = torch.cat(preds_all).squeeze().cpu().numpy()     # [Ntest]
+            attention_matrix = torch.cat(attn_all).squeeze().cpu().numpy()      # [Ntest, T] or [Ntest, T, ...] depending on model
+            true_scores = all_targets.cpu().numpy()                              # [Ntest]
+            baseline_scores = all_baselines.cpu().numpy()                        # [Ntest]
+            all_indices_np = all_indices.detach().cpu().numpy().astype(np.int64) # [Ntest]
 
-            true_scores = all_targets.cpu().numpy()
-            baseline_scores = all_baselines.cpu().numpy()
-            all_indices_np = all_indices.detach().cpu().numpy().astype(np.int64)
+        # -------------------------
+        # (Fix) Single consistent filter (true_score > 0)
+        # -------------------------
+        nonzero_indices = np.where(true_scores > 0.0)[0]  # indices into [Ntest]
 
-        
-        # remove val which true score is 0
-        nonzero_indices = np.where(true_scores > 0.0)[0]
+        true_scores_nz = true_scores[nonzero_indices]
+        predicted_scores_nz = predicted_scores[nonzero_indices]
+        baseline_scores_nz = baseline_scores[nonzero_indices]
+        all_indices_nz = all_indices_np[nonzero_indices]
 
-        true_scores = true_scores[nonzero_indices]
-        predicted_scores = predicted_scores[nonzero_indices]
-        baseline_scores = baseline_scores[nonzero_indices]
-        attention_matrix = attention_matrix[nonzero_indices]
+        # attention_matrix can be [Ntest, T] or [Ntest, T, 1] etc -> squeeze safely per-row later
+        attention_matrix_nz = attention_matrix[nonzero_indices]
 
-        # 追加：ユーザIDも同じフィルタを適用（ここが超重要）
-        all_indices_np = all_indices_np[nonzero_indices]
+        # Also apply same filter to embeddings (aligned to test order)
+        f_seq_nz = f_seq[nonzero_indices].contiguous()  # [Nnz, T, D]
+        f_raw_nz = f_raw[nonzero_indices].contiguous()  # [Nnz, T, P]
 
-        # ===== 追加：予測CSVの保存 =====
-        usernames = [idx_to_node.get(int(nid), str(int(nid))) for nid in all_indices_np]
+        # baseline vector for compute_pos_importance_from_embeddings
+        base_nz_t = torch.tensor(baseline_scores_nz, dtype=torch.float32)
+
+        # =========================
+        # Metrics + prediction CSV
+        # =========================
+        usernames_nz = [idx_to_node.get(int(nid), str(int(nid))) for nid in all_indices_nz]
 
         df_pred_csv = pd.DataFrame({
-            "node_id": all_indices_np,
-            "username": usernames,
-            "true_score": true_scores,
-            "pred_score": predicted_scores,
+            "node_id": all_indices_nz,
+            "username": usernames_nz,
+            "true_score": true_scores_nz,
+            "pred_score": predicted_scores_nz,
         })
-
         pred_csv_path = os.path.join("predictions", f"pred_dec2017_{run_name}.csv")
         os.makedirs(os.path.dirname(pred_csv_path), exist_ok=True)
         df_pred_csv.to_csv(pred_csv_path, index=False, encoding="utf-8-sig")
         mlflow.log_artifact(pred_csv_path, artifact_path="predictions")
         print("[write]", pred_csv_path, "rows=", len(df_pred_csv))
 
-
-
-        # ----- Metrics -----
         extra = compute_eval_metrics(
-            y_true=true_scores,
-            y_pred=predicted_scores,
-            baseline=baseline_scores,
+            y_true=true_scores_nz,
+            y_pred=predicted_scores_nz,
+            baseline=baseline_scores_nz,
             ks=(10, 50, 100),
             prefix="test_dec2017",
         )
-
         mlflow.log_metrics(extra)
-
-        # 既存の final_test_metrics も拡張
         final_test_metrics = dict(extra)
 
-        df_pred = pd.DataFrame({
-            "true_score": true_scores,
-            "pred_score": predicted_scores,
-        })
-
+        df_pred = pd.DataFrame({"true_score": true_scores_nz, "pred_score": predicted_scores_nz})
         metrics = compute_two_ndcgs(df_pred, k_list=(1,10,50,100,200))
-        
         print(metrics)
-
-        # mlflow を使ってるなら
         for k, v in metrics.items():
             mlflow.log_metric(k, v)
 
+        mae = mean_absolute_error(true_scores_nz, predicted_scores_nz)
+        rmse = np.sqrt(mean_squared_error(true_scores_nz, predicted_scores_nz))
+        p_corr, _ = pearsonr(true_scores_nz, predicted_scores_nz)
+        s_corr, _ = spearmanr(true_scores_nz, predicted_scores_nz)
+        mlflow.log_metrics({"mae": mae, "rmse": rmse, "pearson_corr": p_corr, "spearman_corr": s_corr})
+        final_test_metrics.update({
+            "mae": float(mae),
+            "rmse": float(rmse),
+            "pearson_corr": float(p_corr),
+            "spearman_corr": float(s_corr),
+        })
 
-        # ----- Plots -----
-        # print("\n--- 📊 Generating and Logging Plots ---")
+        # =========================
+        # Plots (scatter + attention weight distribution)
+        # =========================
         last_input_graph = inf_input_graphs[-1]
         follower_counts = last_input_graph.x[all_indices, follower_feat_idx].cpu().numpy()
-        
-        follower_counts = follower_counts[nonzero_indices]
-        
-        # NOTE: followers was already log1p()'d when building static features
-        log_follower_counts = follower_counts
-
+        follower_counts_nz = follower_counts[nonzero_indices]
+        log_follower_counts = follower_counts_nz
 
         epsilon = 1e-9
-        true_growth = (true_scores - baseline_scores) / (baseline_scores + epsilon)
-        pred_growth = (predicted_scores - baseline_scores) / (baseline_scores + epsilon)
+        true_growth = (true_scores_nz - baseline_scores_nz) / (baseline_scores_nz + epsilon)
+        pred_growth = (predicted_scores_nz - baseline_scores_nz) / (baseline_scores_nz + epsilon)
 
         plot_files = []
-        plot_files.append(generate_enhanced_scatter_plot(true_scores, predicted_scores,
+        plot_files.append(generate_enhanced_scatter_plot(true_scores_nz, predicted_scores_nz,
                                                          "True Engagement Score", "Predicted Score",
                                                          run_name, "score_basic"))
-        att_bar_file, att_heat_file, att_csv_file, att_raw_file = plot_attention_weights(attention_matrix, run_name)
+
+        # Your existing attention summary plot for all nodes
+        att_bar_file, att_heat_file, att_csv_file, att_raw_file = plot_attention_weights(attention_matrix_nz, run_name)
         for f in [att_bar_file, att_heat_file, att_csv_file, att_raw_file]:
             if f is None:
                 continue
             mlflow.log_artifact(f)
             os.remove(f)
 
-        plot_files.append(generate_enhanced_scatter_plot(true_scores, predicted_scores,
+        plot_files.append(generate_enhanced_scatter_plot(true_scores_nz, predicted_scores_nz,
                                                          "True Engagement Score", "Predicted Score",
                                                          run_name, "score_by_followers",
                                                          color_data=log_follower_counts,
                                                          color_label="log1p(Followers)",
                                                          title_suffix="(Colored by Followers)"))
 
-        plot_files.append(generate_enhanced_scatter_plot(true_scores, predicted_scores,
+        plot_files.append(generate_enhanced_scatter_plot(true_scores_nz, predicted_scores_nz,
                                                          "True Engagement Score", "Predicted Score",
                                                          run_name, "score_by_growth",
                                                          color_data=true_growth,
@@ -3172,24 +4457,9 @@ def run_experiment(params, graphs_data, target_node_idx, experiment_id=None):
                 mlflow.log_artifact(f)
                 os.remove(f)
 
-        # ----- Metrics -----
-        # print("\n--- 📊 Evaluation Metrics ---")
-        mae = mean_absolute_error(true_scores, predicted_scores)
-        rmse = np.sqrt(mean_squared_error(true_scores, predicted_scores))
-        p_corr, _ = pearsonr(true_scores, predicted_scores)
-        s_corr, _ = spearmanr(true_scores, predicted_scores)
-
-        mlflow.log_metrics({"mae": mae, "rmse": rmse, "pearson_corr": p_corr, "spearman_corr": s_corr})
-        # print(f"MAE: {mae:.6f}, RMSE: {rmse:.6f}, Pearson: {p_corr:.4f}, Spearman: {s_corr:.4f}")
-
-        final_test_metrics = {
-            "mae": float(mae),
-            "rmse": float(rmse),
-            "pearson_corr": float(p_corr),
-            "spearman_corr": float(s_corr),
-        }
-
-        # ----- Explanation target: hub influencer in Nov graph -----
+        # =========================
+        # Decide target node (manual or hub)
+        # =========================
         feature_names = static_cols + dynamic_cols
         target_graph = monthly_graphs[-2]  # Nov
         edge_index = target_graph.edge_index.to(device)
@@ -3198,7 +4468,6 @@ def run_experiment(params, graphs_data, target_node_idx, experiment_id=None):
         if target_node_idx is not None:
             target_node_global_idx = int(target_node_idx)
             max_degree = int(d[target_node_global_idx].item()) if target_node_global_idx < target_graph.num_nodes else -1
-            # print(f"\n🎯 Selected User (Node {target_node_global_idx}) (degree={max_degree}) [manual]")
         else:
             max_degree = -1
             target_node_global_idx = None
@@ -3207,47 +4476,202 @@ def run_experiment(params, graphs_data, target_node_idx, experiment_id=None):
                 if deg > max_degree:
                     max_degree = deg
                     target_node_global_idx = int(idx)
-            # print(f"\n🎯 Selected Hub User (Node {target_node_global_idx}) with {int(max_degree)} edges. [auto]")
 
-        # inside run_experiment, after deciding target_node_global_idx:
-        idx_to_node = {int(v): str(k) for k, v in node_to_idx.items()}
         target_name = idx_to_node.get(int(target_node_global_idx), None)
         if target_name is not None:
             mlflow.log_param("xai_target_name", target_name)
+        mlflow.log_param("xai_target_node", int(target_node_global_idx))
 
+        # =========================
+        # (A) Selected-user attention plot (using nz-aligned arrays)
+        # =========================
+        try:
+            pos = np.where(all_indices_nz == int(target_node_global_idx))[0]
+            if len(pos) == 0:
+                print("⚠️ target user not found in nonzero-filtered set (true_score==0 etc.)")
+            else:
+                row = int(pos[0])
+                attn_user = attention_matrix_nz[row]
+                attn_user = np.squeeze(attn_user)
 
+                plt.figure()
+                plt.plot(range(len(attn_user)), attn_user, marker="o")
+                plt.title(f"Attention weights user={idx_to_node.get(int(target_node_global_idx), str(int(target_node_global_idx)))}")
+                plt.xlabel("pos (0=oldest -> T-1=newest)")
+                plt.ylabel("attention weight")
+                plt.tight_layout()
 
-        input_graphs = monthly_graphs[:-1]  # Jan..Nov (T=11)
-        T = len(input_graphs)
+                fig_path = f"attention_user_{int(target_node_global_idx)}_{run_name}.png"
+                plt.savefig(fig_path, dpi=200)
+                plt.close()
+                mlflow.log_artifact(fig_path, artifact_path="xai/attention_user")
+                os.remove(fig_path)
+        except Exception as e:
+            print("⚠️ attention_user plot failed:", e)
 
-        # input_graphs: Jan..Nov の Data リスト
-        # feature_names: static_cols + dynamic_cols
-        target = int(target_node_global_idx)
+        # =========================
+        # (B) Pos-importance baseline replacement experiments (GLOBAL + USER-wise)
+        # =========================
+        baseline_modes = ["zero", "user_mean", "global_pos_mean", "shuffle_pos"]
 
-        mat = np.stack([g.x[target].detach().cpu().numpy() for g in input_graphs], axis=0)  # [T,F]
+        df_pos_long, deltas_np = compute_pos_importance_from_embeddings(
+            model=model,
+            f_seq=f_seq_nz,
+            f_raw=f_raw_nz,
+            baseline_scores=base_nz_t,   # [Nnz] CPU tensor ok
+            device=device,
+            baseline_modes=baseline_modes,
+            batch_size=1024,
+            seed=int(params.get("SEED", 0)),
+        )
 
-        df_diag = pd.DataFrame({
-            "feature": feature_names,
-            "std_over_T": mat.std(axis=0),
-            "nonzero_T": (mat != 0).sum(axis=0),
-            "min": mat.min(axis=0),
-            "max": mat.max(axis=0),
-        }).sort_values(["std_over_T","nonzero_T"], ascending=False)
+        # Save global summary CSV (median per pos)
+        pos_csv = f"pos_importance_baselines_{run_name}.csv"
+        df_pos_long.to_csv(pos_csv, index=False, float_format="%.8e")
+        mlflow.log_artifact(pos_csv, artifact_path="xai/pos_importance")
+        os.remove(pos_csv)
 
-        print(df_diag.head(30))
-        print("dead features =", ((df_diag["std_over_T"]==0) | (df_diag["nonzero_T"]==0)).sum(), "/", len(df_diag))
+        # Quick plot (median deltas per pos)
+        try:
+            for mode in baseline_modes:
+                ddf = df_pos_long[df_pos_long["baseline_mode"] == mode].sort_values("pos")
+                plt.figure()
+                plt.plot(ddf["pos"].values, ddf["delta_median"].values, marker="o")
+                plt.xlabel("pos (0=oldest -> T-1=newest)")
+                plt.ylabel("median(pred_orig - pred_replaced)")
+                plt.title(f"Pos importance (median) / baseline={mode}")
+                plt.tight_layout()
+                fig_path = f"pos_importance_median_{mode}_{run_name}.png"
+                plt.savefig(fig_path, dpi=200)
+                plt.close()
+                mlflow.log_artifact(fig_path, artifact_path="xai/pos_importance")
+                os.remove(fig_path)
+        except Exception as e:
+            print("pos importance plot failed:", e)
 
+        # Baseline agreement (Spearman between modes)
+        try:
+            from scipy.stats import spearmanr as _spearmanr
+            piv = df_pos_long.pivot_table(index="pos", columns="baseline_mode", values="delta_median")
+            agree_rows = []
+            for i in range(len(baseline_modes)):
+                for j in range(i + 1, len(baseline_modes)):
+                    a = piv[baseline_modes[i]].values
+                    b = piv[baseline_modes[j]].values
+                    rho = float(_spearmanr(a, b).correlation)
+                    agree_rows.append({"mode_a": baseline_modes[i], "mode_b": baseline_modes[j], "spearman_rho": rho})
+            df_agree = pd.DataFrame(agree_rows)
+            agree_csv = f"pos_importance_baseline_agreement_{run_name}.csv"
+            df_agree.to_csv(agree_csv, index=False, float_format="%.8e")
+            mlflow.log_artifact(agree_csv, artifact_path="xai/pos_importance")
+            os.remove(agree_csv)
+            for r in agree_rows:
+                mlflow.log_metric(f"pos_imp_spearman_{r['mode_a']}_vs_{r['mode_b']}", r["spearman_rho"])
+        except Exception as e:
+            print("baseline agreement failed:", e)
 
+        # =========================
+        # (B2) USER-wise export (NPZ + CSV long)
+        # =========================
+        try:
+            usernames_nz = [idx_to_node.get(int(nid), str(int(nid))) for nid in all_indices_nz]
+            T_steps = int(f_seq_nz.shape[1])
+
+            npz_path = f"userwise_pos_delta_{run_name}.npz"
+            np.savez_compressed(
+                npz_path,
+                node_id=all_indices_nz.astype(np.int64),
+                username=np.array(usernames_nz, dtype=object),
+                **{f"delta_{mode}": deltas_np[mode].astype(np.float32) for mode in baseline_modes}
+            )
+            mlflow.log_artifact(npz_path, artifact_path="xai/pos_importance_userwise")
+            os.remove(npz_path)
+
+            rows = []
+            for mode in baseline_modes:
+                dmat = deltas_np[mode]  # [Nnz, T]
+                for pos_i in range(T_steps):
+                    rows.append(pd.DataFrame({
+                        "node_id": all_indices_nz,
+                        "username": usernames_nz,
+                        "pos": pos_i,
+                        "baseline_mode": mode,
+                        "delta": dmat[:, pos_i],
+                    }))
+            df_user_pos = pd.concat(rows, ignore_index=True)
+            user_csv = f"userwise_pos_delta_{run_name}.csv"
+            df_user_pos.to_csv(user_csv, index=False, float_format="%.8e", encoding="utf-8-sig")
+            mlflow.log_artifact(user_csv, artifact_path="xai/pos_importance_userwise")
+            os.remove(user_csv)
+        except Exception as e:
+            print("user-wise pos delta export failed:", e)
+
+        # =========================
+        # (B3) Selected-user plot: baseline replacement deltas vs pos
+        # =========================
+        try:
+            pos = np.where(all_indices_nz == int(target_node_global_idx))[0]
+            if len(pos) == 0:
+                print("⚠️ target user not found in nonzero-filtered set for pos-delta plot")
+            else:
+                row = int(pos[0])
+                plt.figure()
+                for mode in baseline_modes:
+                    series = deltas_np[mode][row]  # [T]
+                    plt.plot(np.arange(len(series)), series, marker="o", label=mode)
+                plt.xlabel("pos (0=oldest -> T-1=newest)")
+                plt.ylabel("delta = pred_orig - pred_replaced")
+                plt.title(f"User-wise pos delta (node={idx_to_node.get(int(target_node_global_idx), str(int(target_node_global_idx)))})")
+                plt.legend()
+                plt.tight_layout()
+                fig_path = f"user_pos_delta_{int(target_node_global_idx)}_{run_name}.png"
+                plt.savefig(fig_path, dpi=220)
+                plt.close()
+                mlflow.log_artifact(fig_path, artifact_path="xai/pos_importance_userwise")
+                os.remove(fig_path)
+        except Exception as e:
+            print("selected-user pos delta plot failed:", e)
+
+        # =========================
+        # Diagnostics: feature variance over time (for selected user)
+        # =========================
+        try:
+            input_graphs = monthly_graphs[:-1]  # Jan..Nov
+            T = len(input_graphs)
+            target = int(target_node_global_idx)
+
+            mat = np.stack([g.x[target].detach().cpu().numpy() for g in input_graphs], axis=0)  # [T,F]
+            df_diag = pd.DataFrame({
+                "feature": feature_names,
+                "std_over_T": mat.std(axis=0),
+                "nonzero_T": (mat != 0).sum(axis=0),
+                "min": mat.min(axis=0),
+                "max": mat.max(axis=0),
+            }).sort_values(["std_over_T", "nonzero_T"], ascending=False)
+
+            diag_csv = f"diag_feature_over_time_node_{target}_{run_name}.csv"
+            df_diag.to_csv(diag_csv, index=False, float_format="%.8e")
+            mlflow.log_artifact(diag_csv, artifact_path="xai/diagnostics")
+            os.remove(diag_csv)
+        except Exception as e:
+            print("diag feature-over-time failed:", e)
+
+        # =========================
+        # Explanation (MaskOpt) - your existing flow
+        # =========================
         sens_df = None
         sens_selected = None
 
         try:
-            # pick attention weights row for this node (if exists)
+            input_graphs = monthly_graphs[:-1]  # Jan..Nov (T=11)
+            T = len(input_graphs)
+
+            # pick attention weights row for this node (if exists) — use NZ-aligned attention
             attn_w = None
-            pos_in_all = (all_indices == target_node_global_idx).nonzero(as_tuple=False)
-            if pos_in_all.numel() > 0:
-                row = int(pos_in_all[0].item())
-                attn_w = torch.tensor(attention_matrix[row], dtype=torch.float32)
+            pos = np.where(all_indices_nz == int(target_node_global_idx))[0]
+            if len(pos) > 0:
+                row = int(pos[0])
+                attn_w = torch.tensor(np.squeeze(attention_matrix_nz[row]), dtype=torch.float32)
 
             if params.get("explain_use_sensitivity", True):
                 try:
@@ -3260,8 +4684,7 @@ def run_experiment(params, graphs_data, target_node_idx, experiment_id=None):
                         score_mode=str(params.get("sensitivity_score_mode", "alpha_x_delta")),
                         min_delta=float(params.get("sensitivity_min_delta", 1e-4)),
                     )
-                except Exception as e:
-                    # print(f"[Explain] sensitivity computation skipped: {e}")
+                except Exception:
                     sens_df, sens_selected = None, None
 
             if attn_w is None:
@@ -3277,10 +4700,7 @@ def run_experiment(params, graphs_data, target_node_idx, experiment_id=None):
             if sens_selected is not None and len(sens_selected) > 0:
                 positions_to_explain = sens_selected[: int(params.get("xai_topk_pos", 3))]
 
-            # print(f"[Explain] positions_to_explain={positions_to_explain} / T={T}")
-
             mlflow.log_param("xai_positions", ",".join(map(str, positions_to_explain)))
-            mlflow.log_param("xai_target_node", int(target_node_global_idx))
 
             # export attention alpha + sensitivity table (optional)
             if attn_w is not None:
@@ -3315,7 +4735,7 @@ def run_experiment(params, graphs_data, target_node_idx, experiment_id=None):
                     edge_mask_scope="incident",
                     edge_grouping="neighbor",
                     fid_weight=2000.0,
-                    coeffs={"edge_size":0.08,"edge_ent":0.15,"node_feat_size":0.02,"node_feat_ent":0.15},
+                    coeffs={"edge_size":0.08, "edge_ent":0.15, "node_feat_size":0.02, "node_feat_ent":0.15},
                     budget_feat=10, budget_edge=20, budget_weight=1.0,
                     impact_reference="masked",
                     use_contrastive=False,
@@ -3323,13 +4743,11 @@ def run_experiment(params, graphs_data, target_node_idx, experiment_id=None):
                     tag=tag,
                 )
 
-                # print(tag, meta["orig_pred"], meta["best_pred"])
                 if df_feat is not None and not df_feat.empty:
                     print(df_feat.head(10).to_string(index=False, float_format=lambda v: f"{v:.8e}"))
                 if df_edge is not None and not df_edge.empty:
                     print(df_edge.head(10).to_string(index=False, float_format=lambda v: f"{v:.8e}"))
 
-                # quick bar plots (paper-friendly)
                 mlflow_log_maskopt_plots(
                     df_feat=df_feat,
                     df_edge=df_edge,
@@ -3346,8 +4764,8 @@ def run_experiment(params, graphs_data, target_node_idx, experiment_id=None):
 
         # always log eval scatter
         mlflow_log_pred_scatter(
-            y_true=true_scores,
-            y_pred=predicted_scores,
+            y_true=true_scores_nz,
+            y_pred=predicted_scores_nz,
             tag="test_dec2017",
             step=params.get("EPOCHS", None),
             artifact_path="plots",
@@ -3362,9 +4780,9 @@ def run_experiment(params, graphs_data, target_node_idx, experiment_id=None):
         gc.collect()
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
-        # print(f"🧹 Memory cleared after {run_name}.")
 
     return run_id, final_test_metrics
+
 
 # ===================== Main =====================
 def main():
@@ -3424,6 +4842,13 @@ def main():
     feature_dim = monthly_graphs[0].x.shape[1]
     # print(f"Final feature dimension: {feature_dim}")
     # print(f"Follower feature index: {follower_feat_idx}")
+    print(f"[Target] influencer_name arg = {args.influencer_name!r}")
+    if args.influencer_name not in node_to_idx:
+        raise ValueError(f"Unknown influencer_name: {args.influencer_name!r}. "
+                        f"Example keys: {list(node_to_idx.keys())[:10]}")
+    target_gid = int(node_to_idx[args.influencer_name]) if args.influencer_name is not None else None
+    print(f"[Target] global_id = {target_gid}")
+
 
     graphs_data = (
         monthly_graphs,

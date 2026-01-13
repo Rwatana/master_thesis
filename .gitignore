@@ -285,3 +285,6 @@ mlruns
 mlruns_artifacts
 
 code/checkpoints
+code/xai_cache
+
+code/streamlit_bundle

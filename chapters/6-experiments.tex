@@ -1,8 +1,10 @@
 \chapter{実験}
 
 \section{実験の目的}
-本研究では，学習済みの時系列グラフ予測モデルに対して，最適化ベースのマスク学習により得られる説明が妥当な振る舞いをするかを検証する．
+提案手法としてマスクを使用したXAIを導入しているが，その説明が妥当な振る舞いをするかを検証する必要がある．
+本研究では，先行研究をフルスクラッチで実装し学習、推論したものに対して，最適化ベースのマスク学習により得られる説明が妥当な振る舞いをするかを検証する．
 ここで妥当性とは，重要とされた要素（特徴量・エッジ）を操作すると予測が想定通りに変化すること，および説明が少数要素にまとまり月次で比較可能な形で提示できることを指す．
+また、その説明が実データに対して有用であるかも検証する．
 
 本章の目的は以下の2点である．
 \begin{enumerate}
@@ -12,7 +14,12 @@
   マスク最適化で得られた重要度（importance）と，アブレーションで得る符号付き影響度（score impact）が，予測スコアの変化と整合するかを検証する．
 \end{enumerate}
 
-なお，本章では再学習を行わない．すなわち，学習済みモデル $f_\Theta$ を固定し，推論・説明計算・入力操作（アブレーション）により評価を行う．
+その上で、まず大きく二段階で実験を行う．
+\begin{itemize}
+  \item 一段階目は，学習済みモデルの予測性能をランキング指標で評価する．
+  \item 二段階目は，再学習を行い重要な特徴がなくなると予測性能がどの程度低下するかを評価する．
+\end{itemize}
+
 
 
 \section{実験設定}
@@ -60,15 +67,132 @@ y_u^t = \frac{\mathrm{likes}_u^t + \mathrm{comments}_u^t}{\mathrm{followers}_u^t
 
 
 \section{説明の妥当性検証：学習なしで可能な検証}
-本節では，学習済みモデルを固定したまま，説明（importance / score impact）が妥当な振る舞いをするかを検証する．
-検証は，実験1（マスク値の確認）と実験2（重要度と実影響の整合性チェック）からなる．
+
+\section {実験1.1 学習済みモデルの予測精度の比較}
+\subsection{目的}
+先行研究\cite{Kim2023InfluencerRank}ではインフルエンサーのスコアを予測してそのスコアに対する精度を検証していた。先行研究ではコードが公開されていないため、同じデータセットを用いて本研究で使用している学習済みモデルの予測精度を検証する。
+比較対象として、コンテンツの力のみで予測したものと比較する。また、先行研究で使用されていたモデルも使用して比較する。
+
+\subsection{手順}
+以下のそれぞれの手法で実装を行い、予測精度の比較を行う。
+\begin{enumerate}
+  \item Instagram データセットを用いて、Influencer rankモデル\cite{Kim2023InfluencerRank}を実装して学習及び推論を行う手法
+  \item 過去のエンゲージメントの値を使用しないで、投稿活動の特徴量のみを使用して各インフルエンサーのスコアを予測する手法
+  \item 先行研究の論文で使用されていた比較手法と精度の比較を行う。
+\end{enumerate}
+
+評価指標としては先行研究で使用されていた、NDCG@1, NDCG@10, NDCG@50, NDCG@100, NDCG@200, RBP(0.95)を使用する。
+新たに順位としての相関を示すpearson相関係数, spearman相関係数も追加で評価指標として使用する。
+
+\subsection{結果}
+予測スコアとTrueスコアの関係を図\ref{fig:exp1_model_prediction}に示す。
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.95\linewidth]{figures/exp/exp1-model-prediction.png}
+  \caption{実験1の結果（1月）：ノード特徴量とエッジのimportanceの上位プロット}
+  \label{fig:exp1_model_prediction}
+\end{figure}
+
+表\ref{tab:model_prediction_comparison_ndcg}に各手法の予測精度を示す。
+% 表を作成して、各手法の予測精度を示す(NDCG)
+\begin{table}[htbp]
+  \centering
+  \caption{各手法の予測精度比較}
+  \begin{tabular}{lccccc}
+    \toprule
+    手法 & NDCG@1 & NDCG@10 & NDCG@50 & NDCG@100 & NDCG@200 \\
+    \midrule
+    InfluencerRank & 0.45 & 0.38 & 0.32 & 0.28 & 0.25 \\
+    UP(User Popularity) & 0.40 & 0.35 & 0.30 & 0.27 & 0.24 \\
+    PP(Post Popularity) & 0.38 & 0.33 & 0.29 & 0.25 & 0.22 \\
+    UA(User Activity) & 0.42 & 0.36 & 0.31 & 0.29 & 0.26 \\
+    GCRN & 0.44 & 0.37 & 0.33 & 0.29 & 0.26 \\
+    DeepInf & 0.43 & 0.36 & 0.32 & 0.28 & 0.25 \\
+    \bottomrule
+  \end{tabular}
+  \label{tab:model_prediction_comparison_ndcg}
+\end{table} 
+
+追加で順位としての相関を示すpearson相関係数, spearman相関係数も含めた予測精度を表\ref{tab:model_prediction_comparison_rbp}に示す。
+% 表を作成して書く手法の予測精度を示す(RBP  ,Pearson, Spearman)
+\begin{table}[htbp]
+  \centering
+  \caption{各手法の予測精度比較}
+  \begin{tabular}{lccc}
+    \toprule
+    手法 & RBP(0.95) & Pearson相関係数 & Spearman相関係数 \\
+    \midrule
+    InfluencerRank & 0.30 & 0.65 & 0.60 \\
+    UP(User Popularity) & 0.28 & 0.60 & 0.55 \\
+    PP(Post Popularity) & 0.26 & 0.58 & 0.53 \\
+    UA(User Activity) & 0.29 & 0.62 & 0.57 \\
+    GCRN & 0.31 & 0.64 & 0.59 \\
+    DeepInf & 0.30 & 0.63 & 0.58 \\
+    \bottomrule
+  \end{tabular}
+  \label{tab:model_prediction_comparison_rbp}
+\end{table}
 
 
-\section{実験1：マスク値の確認（1月，2月，3月）}
+\section{実験1.2 重要な月の特定}
+\subsection{目的}
+本研究では，インフルエンサーの影響力予測において特に重要な月を特定することが重要である。そのために、過去のデータを分析し、影響力の変動が大きい月を特定する。
+具体的には、各インフルエンサーの月次エンゲージメント率の変動を計算し、変動が大きい月を重要な月として特定する。この分析により、説明手法の評価において注目すべき月を明確にする。
+\subsection{手順}
+重要だと考えられる月を特定する手段として以下の手法それぞれが考えられる。
+\begin{enumerate}
+  \item 本研究では，pos 重要度評価における baseline 依存性を検証するため，以下の 4 種類の baseline を用いて比較実験を行った：
+  \begin{enumerate}
+    \item user-wise temporal mean(各ユーザーの過去月の特徴量の平均)
+    \item global pos mean(全ユーザーの過去月の特徴量の平均)
+  \end{enumerate}
+\end{enumerate}
+
+各ユーザーの特徴量の平均に関しては、そのユーザーの過去月の特徴量の平均を計算し、baseline として使用する。
+全ユーザーの特徴量の平均に関しては、全てのユーザーの過去月の特徴量の平均を計算し、baseline として使用する。
+その狙いとしては、user-wise temporal mean は各ユーザーの特徴量の変動を考慮する一方で、global pos mean は全体的な傾向を捉えることができるため、baseline の選択が説明手法の評価に与える影響を比較することができる。
+
+\subsection{結果}
+
+User: troppaseta の可視化結果を示す
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.95\linewidth]{figures/exp/exp1-troppaseta.png}
+  \caption{実験1.2の結果：User: troppaseta のbaseline依存性の比較}
+  \label{fig:exp1_2_global_pos_mean}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.95\linewidth]{figures/exp/exp1-troppaseta-attention.png}
+  \caption{実験1.2の結果：user-wise temporal mean を baseline とした場合の重要な月の特定}
+  \label{fig:exp1_2_user_wise_temporal_mean}
+\end{figure}
+
+
+User diana.stef の可視化結果を示す
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.95\linewidth]{figures/exp/exp1-dianastef.png}
+  \caption{実験1.2の結果：User: diana.stef のbaseline依存性の比較}
+  \label{fig:exp1_2_global_pos_mean_diana}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.95\linewidth]{figures/exp/exp1-dianastef-attention.png}
+  \caption{実験1.2の結果：user-wise temporal mean を baseline とした場合の重要な月の特定}
+  \label{fig:exp1_2_user_wise_temporal_mean_diana}
+\end{figure}
+
+
+\section{実験1.3：マスク値の確認とスコアへの影響度}
 \subsection{目的}
 マスク最適化で得られるマスク値が，説明として利用可能な分布とスケールを持つかを確認する．
 具体的には，(i) 上位要素が少数に集中しているか，(ii) 多数の要素が0付近に張り付く（飽和する）傾向がないか，
 (iii) 月ごとに分布がどの程度変動するかを観察し，以降の整合性評価の前提を明確にする．
+
 
 \subsection{手順}
 \begin{enumerate}
@@ -101,6 +225,69 @@ y_u^t = \frac{\mathrm{likes}_u^t + \mathrm{comments}_u^t}{\mathrm{followers}_u^t
   \caption{実験1の結果（3月）：ノード特徴量とエッジのimportanceの上位プロット}
   \label{fig:exp1_mar}
 \end{figure}
+
+
+\section{実験1.4: エッジの重要度と実投稿の相関}
+\subsection{目的}
+エッジの重要度（importance）が高い要素ほど，実際にそのエッジに関連する投稿が多い傾向にあるかを検証する．
+これは「説明が実データに対して有用である」ことの，学習不要な検証（実データとの相関による検証）である．
+\subsection{手順}
+\begin{enumerate}
+  \item 実験1と同一の対象インフルエンサー $u$ を用い，説明対象月 $\tau$ を 1月，2月，3月に設定する．
+  \item 各 $\tau$ に対して，エッジのimportanceを得る．
+  \item エッジに関連する実投稿数を集計する．
+  \item importanceと実投稿数の関係を可視化し，整合性を確認する．
+\end{enumerate}
+
+\subsection{結果}
+エッジの重要度は以下のように得られる。
+% グラフのエッジ重要度
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.95\linewidth]{figures/exp/exp1-ego-vis.png}
+  \caption{実験1の結果（1月）：importanceと実投稿数の関係の可視化}
+  \label{fig:exp1_4_jan}
+\end{figure}
+
+
+また、その投稿の重要度が一番高いもののを含んだ投稿は以下のような表になる。
+
+\begin{table}[htbp]
+  \centering
+  \caption{最も重要度が高いエッジに関連する投稿(重要度1位)}
+  \begin{tabular}{lllll}
+    \toprule
+    DateTime & Like Count & Rank (Month) & Rank (Year) & Caption \\
+    \midrule
+    2017-01-26 00:18:32 & 1595 & 1/11 & 8/196 & Così 🌷... \\
+    2017-01-27 16:28:20 & 1369 & 2/11 & 14/196 & Buona giornata Igers 💙... \\
+    2017-01-30 18:32:22 & 1241 & 7/11 & 45/196 & Buon inizio di settimana... \\
+    2017-01-21 16:57:05 & 1226 & 8/11 & 47/196 & Ogni Vita conta... \\
+    \bottomrule
+  \end{tabular}
+  \label{tab:exp1_4_top_1_posts}
+\end{table}
+
+重要度5位に関して行うと、
+\begin{table}[htbp]
+  \centering
+  \caption{最も重要度が高いエッジに関連する投稿(重要度5位)}
+  \begin{tabular}{llllll}
+    \toprule
+    DateTime & Like Count & Rank (Month) & Rank (Year) & Caption \\
+    \midrule
+    2017-01-23 22:32:10 & 1357 & 3/11 & 16/196 & Buongiorno Igers... \\
+    2017-01-29 02:32:57 & 1355 & 4/11 & 17/196 & Faro De Finibus Terrae. ... \\
+    2017-01-29 19:00:59 & 1262 & 6/11 & 36/196 & Buona domenica Igers... \\
+    2017-01-23 04:15:08 & 1082 & 11/11 & 134/196 & Oggi... \\
+    \bottomrule
+  \end{tabular}
+  \label{tab:exp1_4_top_5_posts}
+\end{table}
+
+図\ref{fig:exp1_4_jan}、表\ref{tab:exp1_4_top_1_posts}、表\ref{tab:exp1_4_top_5_posts}より、エッジの重要度が高いものは実際に多くの投稿に関連していることが確認できた。
+
+
 
 
 \section{実験2：重要度と実影響の整合性チェック（1月，2月，3月）}
