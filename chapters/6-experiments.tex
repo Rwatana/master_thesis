@@ -134,7 +134,6 @@ y_u^t = \frac{\mathrm{likes}_u^t + \mathrm{comments}_u^t}{\mathrm{followers}_u^t
   \label{tab:model_prediction_comparison_rbp}
 \end{table}
 
-
 \section{実験1.2 重要な月の特定}
 \subsection{目的}
 本研究では，インフルエンサーの影響力予測において特に重要な月を特定することが重要である。そのために、過去のデータを分析し、影響力の変動が大きい月を特定する。
@@ -185,7 +184,6 @@ User diana.stef の可視化結果を示す
   \caption{実験1.2の結果：user-wise temporal mean を baseline とした場合の重要な月の特定}
   \label{fig:exp1_2_user_wise_temporal_mean_diana}
 \end{figure}
-
 
 \section{実験1.3：マスク値の確認とスコアへの影響度}
 \subsection{目的}
@@ -259,8 +257,8 @@ User diana.stef の可視化結果を示す
     \toprule
     DateTime & Like Count & Rank (Month) & Rank (Year) & Caption \\
     \midrule
-    2017-01-26 00:18:32 & 1595 & 1/11 & 8/196 & Così 🌷... \\
-    2017-01-27 16:28:20 & 1369 & 2/11 & 14/196 & Buona giornata Igers 💙... \\
+    2017-01-26 00:18:32 & 1595 & 1/11 & 8/196 & Così $\heartsuit$... \\
+    2017-01-27 16:28:20 & 1369 & 2/11 & 14/196 & Buona giornata Igers \textcolor{blue}{\large$\blacktriangle$}... \\
     2017-01-30 18:32:22 & 1241 & 7/11 & 45/196 & Buon inizio di settimana... \\
     2017-01-21 16:57:05 & 1226 & 8/11 & 47/196 & Ogni Vita conta... \\
     \bottomrule
@@ -288,9 +286,7 @@ User diana.stef の可視化結果を示す
 図\ref{fig:exp1_4_jan}、表\ref{tab:exp1_4_top_1_posts}、表\ref{tab:exp1_4_top_5_posts}より、エッジの重要度が高いものは実際に多くの投稿に関連していることが確認できた。
 
 
-
-
-\section{実験2：重要度と実影響の整合性チェック（1月，2月，3月）}
+\section{実験1.5: ノード特徴量の重要度とモデルへのスコア}
 \subsection{目的}
 重要度（importance）が高い要素ほど，その要素を操作したときのスコア変化（score impact）が大きい傾向にあるかを検証する．
 これは「説明が予測に忠実である」ことの，学習不要な検証（入力介入による検証）である．
@@ -298,35 +294,131 @@ User diana.stef の可視化結果を示す
 \subsection{手順}
 \begin{enumerate}
   \item 実験1と同一の対象インフルエンサー $u$ を用い，説明対象月 $\tau$ を 1月，2月，3月に設定する．
-  \item 各 $\tau$ に対して，特徴量とエッジのimportanceを得る．
-  \item 特徴量はベースライン置換，エッジは除去を行い，score impact（符号付き影響度）を算出する（式\eqref{eq:score_impact_feature}）．
+  \item 各 $\tau$ に対して，特徴量のimportanceを得る．
+  \item ベースライン置換を行い，score impact（符号付き影響度）を算出する（式\eqref{eq:score_impact_feature}）．
   \item importanceとscore impactの関係を可視化し，整合性を確認する．
+\end{enumerate} 
+
+\subsection{結果}
+図\ref{fig:exp1_5_jan}〜図\ref{fig:exp1_5_mar}に，1月，2月，3月それぞれにおけるimportanceとscore impactの関係を示す．
+本図は，重要度が高いとされた要素が，実際にスコアに影響する要素として振る舞っているかを確認する目的で作成したものである．
+
+
+\section{実験1.6: 重要な特徴がインフルエンサー全体でどのような効果を持つか}
+\subsection{目的}
+重要な特徴量がインフルエンサー全体でどのような効果を持つかを検証する。
+具体的には、重要な特徴量を操作した場合に、その特徴量はインフルエンサー全体で有効なのかそれとも、特定のインフルエンサーにのみ有効なのかを調査する。
+
+\subsection{手順}
+\begin{enumerate}
+  \item ランキング上位のインフルエンサーを対象に選択する（例：予測スコア上位 $N$ ユーザ）．
+  \item 各インフルエンサー $u$ に対して，説明対象月 $\tau$（1月，2月，3月）でのノード特徴量とエッジのimportanceを算出する．
+  \item 行にユーザ，列に特徴量またはエッジグループ，値にimportanceを配置したヒートマップを作成する．
+  \item ヒートマップを可視化し，以下を確認する：
+  \begin{enumerate}
+    \item 特定のインフルエンサークラスタにのみ効く特徴（局所的な重要度パターン）
+    \item 全インフルエンサーに共通して効く特徴（汎用的な重要度パターン）
+    \item 月次での重要度パターンの変動
+  \end{enumerate}
+\end{enumerate}
+
+
+\subsection{結果}
+ヒートマップの可視化結果を図\ref{fig:exp1_6_heatmap}に示す．
+本図より，特定の特徴量がインフルエンサー全体で共通して重要であるのか，
+それとも特定のインフルエンサーグループのみで重要であるのかを確認できる．
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.95\linewidth]{figures/exp/exp1-6-heatmap.png}
+  \caption{実験1.6の結果：ランキング上位インフルエンサーの特徴量重要度ヒートマップ}
+  \label{fig:exp1_6_heatmap}
+\end{figure}
+
+
+\section{実験1.7: Sanity Check（ランダム化テスト）}
+\subsection{目的}
+提案手法による重要度算出の仕組みが正常に機能しているかを検証する．
+具体的には，モデル重みをランダム化した場合とラベル（目的変数）をシャッフルした場合における
+importance分布とDeletion曲線が，元のモデルとどのように異なるかを比較することで，
+説明手法が実際にモデルの予測機構を反映しているかを確認する．
+
+\subsection{手順}
+\begin{enumerate}
+  \item 元のモデル（学習済み）を baseline として，対象インフルエンサー $u$ の月 $\tau$（1月，2月，3月）
+  におけるimportanceを算出する．
+  \item モデル重みをランダムに初期化したモデルを用いて，同一の対象・月に対してimportanceを算出する．
+  \item ラベル（エンゲージメント率）をシャッフルして学習し直したモデルを用いて，importanceを算出する．
+  \item 元のモデル，ランダムモデル，シャッフルモデルのimportance分布を重ねて可視化する．
+  \item さらに，各モデルに対してDeletion分析を行い，上位重要度要素を削除したときの
+  スコア変化曲線を比較する．元のモデルのみが明確に低下するはずである．
 \end{enumerate}
 
 \subsection{結果}
-図\ref{fig:exp2_jan}〜図\ref{fig:exp2_mar}に，1月，2月，3月それぞれにおけるimportanceとscore impactの関係を示す．
-本図は，重要度が高いとされた要素が，実際にスコアに影響する要素として振る舞っているかを確認する目的で作成したものである．
+図\ref{fig:exp1_7_importance}に，元のモデル，ランダムモデル，シャッフルラベルモデルの
+importance分布を並べて示す．図\ref{fig:exp1_7_deletion}に，各モデルに対するDeletion曲線を示す．
+本結果より，提案手法が実際にモデルの予測に忠実な説明を生成しており，
+ランダムまたは無関連なモデルでは重要度が出ない（または出ても無意味）ことが確認できる．
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=0.95\linewidth]{figures/exp2_jan.png}
-  \caption{実験2の結果（1月）：importanceとscore impactの整合性の可視化}
-  \label{fig:exp2_jan}
+  \includegraphics[width=0.95\linewidth]{figures/exp/exp1-7-importance.png}
+  \caption{実験1.7の結果：Sanity Check（importance分布の比較）}
+  \label{fig:exp1_7_importance}
 \end{figure}
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=0.95\linewidth]{figures/exp2_feb.png}
-  \caption{実験2の結果（2月）：importanceとscore impactの整合性の可視化}
-  \label{fig:exp2_feb}
+  \includegraphics[width=0.95\linewidth]{figures/exp/exp1-7-deletion.png}
+  \caption{実験1.7の結果：Sanity Check（Deletion曲線の比較）}
+  \label{fig:exp1_7_deletion}
 \end{figure}
 
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=0.95\linewidth]{figures/exp2_mar.png}
-  \caption{実験2の結果（3月）：importanceとscore impactの整合性の可視化}
-  \label{fig:exp2_mar}
-\end{figure}
+
+
+
+% \section{実験2：重要度と実影響の整合性チェック（1月，2月，3月）}
+% \subsection{目的}
+% 重要度（importance）が高い要素ほど，その要素を操作したときのスコア変化（score impact）が大きい傾向にあるかを検証する．
+% これは「説明が予測に忠実である」ことの，学習不要な検証（入力介入による検証）である．
+
+% \subsection{手順}
+% \begin{enumerate}
+%   \item 実験1と同一の対象インフルエンサー $u$ を用い，説明対象月 $\tau$ を 1月，2月，3月に設定する．
+%   \item 各 $\tau$ に対して，特徴量とエッジのimportanceを得る．
+%   \item 特徴量はベースライン置換，エッジは除去を行い，score impact（符号付き影響度）を算出する（式\eqref{eq:score_impact_feature}）．
+%   \item importanceとscore impactの関係を可視化し，整合性を確認する．
+% \end{enumerate}
+
+% \subsection{結果}
+% 図\ref{fig:exp2_jan}〜図\ref{fig:exp2_mar}に，1月，2月，3月それぞれにおけるimportanceとscore impactの関係を示す．
+% 本図は，重要度が高いとされた要素が，実際にスコアに影響する要素として振る舞っているかを確認する目的で作成したものである．
+
+% \begin{figure}[htbp]
+%   \centering
+%   \includegraphics[width=0.95\linewidth]{figures/exp2_jan.png}
+%   \caption{実験2の結果（1月）：importanceとscore impactの整合性の可視化}
+%   \label{fig:exp2_jan}
+% \end{figure}
+
+% \begin{figure}[htbp]
+%   \centering
+%   \includegraphics[width=0.95\linewidth]{figures/exp2_feb.png}
+%   \caption{実験2の結果（2月）：importanceとscore impactの整合性の可視化}
+%   \label{fig:exp2_feb}
+% \end{figure}
+
+% \begin{figure}[htbp]
+%   \centering
+%   \includegraphics[width=0.95\linewidth]{figures/exp2_mar.png}
+%   \caption{実験2の結果（3月）：importanceとscore impactの整合性の可視化}
+%   \label{fig:exp2_mar}
+% \end{figure}
+
+
+\section{考察}
+本章では，学習済みモデルを固定したまま実行可能な評価として，
+(1) ランキング指標による予測性能の確認，
 
 
 \section{まとめ}
