@@ -16,7 +16,7 @@ MENTIONS_2017_FILE = 'mentions_2017.csv'
 TARGET_YEAR = 2017
 
 def filter_data_for_2017():
-    """元データから2017年のデータのみを抽出し、新しいファイルとして保存する"""
+    """元データから2017年のデータのみを抽出し,新しいファイルとして保存する"""
     print(f"--- Starting Data Filtering Process for Year {TARGET_YEAR} ---")
 
     # 1. 投稿データ (posts) のフィルタリング

@@ -135,7 +135,7 @@ def print_device_info(dev: torch.device):
 
 # ===================== Your data builder (reuse) =====================
 # NOTE: ここはあなたの既存 prepare_graph_data / load_influencer_profiles をそのまま貼るのが一番安全です。
-#       下は「必要最低限だけ呼ぶ」前提で、関数名と戻り値をあなたのコードに合わせています。
+#       下は「必要最低限だけ呼ぶ」前提で,関数名と戻り値をあなたのコードに合わせています。
 #       既存実装をこのファイルにコピーして使ってください。
 
 PREPROCESSED_FILE = 'dataset_A_active_all.csv'

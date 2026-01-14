@@ -13,7 +13,7 @@ st.set_page_config(page_title="投稿分析", layout="wide")
 def load_influencer_data(filepath):
     """
     influencers.txtを読み込む。
-    1行目をヘッダーとし、2行目の区切り線はスキップする。
+    1行目をヘッダーとし,2行目の区切り線はスキップする。
     """
     try:
         df = pd.read_csv(filepath, sep='\t', skiprows=[1])
@@ -32,7 +32,7 @@ def load_post_data(filepath):
 
 def get_posts_for_influencer(username, info_dir):
     """
-    指定されたインフルエンサーの全投稿データを収集し、時系列でソートして返す。
+    指定されたインフルエンサーの全投稿データを収集し,時系列でソートして返す。
     """
     try:
         all_files = os.listdir(info_dir)
@@ -57,7 +57,7 @@ def get_posts_for_influencer(username, info_dir):
 # --- UI描画 ---
 
 st.title("📝 投稿分析")
-st.write("サイドバーでインフルエンサーを選択すると、その人の全投稿を時系列で表示します。")
+st.write("サイドバーでインフルエンサーを選択すると,その人の全投稿を時系列で表示します。")
 
 # サイドバーでのインフルエンサー選択
 st.sidebar.header("インフルエンサー選択")

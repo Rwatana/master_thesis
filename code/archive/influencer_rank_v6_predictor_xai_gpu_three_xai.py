@@ -26,7 +26,7 @@ try:
 except ImportError:
     print("Error: 'shap' or 'captum' library not found.")
     print("Please install them using: pip install shap captum")
-    # 続けるが、XAI分析はスキップされる
+    # 続けるが,XAI分析はスキップされる
     shap = None
     IntegratedGradients = None
     LRP = None
@@ -196,10 +196,10 @@ class InfluencerRankModel(nn.Module):
     
     # 🚀 OOMエラー回避のためのリファクタリング
     # GCNエンコードは `forward` の *外* で実行する。
-    # この `forward` は、エンコード済みの時系列埋め込み (target_embeddings) を受け取る。
+    # この `forward` は,エンコード済みの時系列埋め込み (target_embeddings) を受け取る。
     def forward(self, target_embeddings):
         """
-        GCNエンコード済みの時系列埋め込みを受け取り、RNNとPredictorを実行する。
+        GCNエンコード済みの時系列埋め込みを受け取り,RNNとPredictorを実行する。
         :param target_embeddings: (Batch_Size, Time_Steps, GCN_Features)
         :return: predicted_scores, attention_weights
         """
@@ -249,7 +249,7 @@ def calculate_rbp(true_scores_in_predicted_order, p=0.95):
 # --- 🚀 新設: XAIヒートマップ描画関数 ---
 def plot_xai_heatmap(contributions, usernames, method_name, rnn_dim, top_n):
     """
-    XAI手法による貢献度 (Numpy配列) を受け取り、ヒートマップをプロットして保存する
+    XAI手法による貢献度 (Numpy配列) を受け取り,ヒートマップをプロットして保存する
     """
     print(f"Generating {method_name} contribution heatmap...")
     # contributions は (top_n, rnn_dim) の Numpy 配列であること
@@ -342,7 +342,7 @@ def train_and_save_model():
         # --- 🚀 修正 (Patch 1): GCNエンコード -> CPUに退避 ---
         with torch.no_grad():
             print("Pre-computing GCN embeddings (GPU -> CPU cache)...")
-            # グラフデータをGPUでエンコードし、結果は .cpu() でCPUメモリに即時退避
+            # グラフデータをGPUでエンコードし,結果は .cpu() でCPUメモリに即時退避
             sequence_embeddings = torch.stack([
                 model.gcn_encoder(g.x.to(device), g.edge_index.to(device)).cpu() 
                 for g in tqdm(monthly_graphs, desc="GCN Encoding (GPU) -> CPU")
@@ -358,7 +358,7 @@ def train_and_save_model():
                 optimizer.zero_grad()
                 
                 # --- 🚀 修正 (Patch 2): バッチをGPUに転送 ---
-                # sequence_embeddings (CPU) からスライスし、.to(device) でGPUに転送
+                # sequence_embeddings (CPU) からスライスし,.to(device) でGPUに転送
                 batch_sequence_embeddings = sequence_embeddings[:, batch_indices].permute(1, 0, 2).to(device)
                 batch_true_scores = batch_true_scores.to(device)
                 
@@ -378,7 +378,7 @@ def train_and_save_model():
                 
             print(f"Epoch {epoch+1}/{NUM_EPOCHS}, Average Batch Loss: {total_loss / len(dataloader):.4f}")
     else:
-        # (End-to-End 学習は OOM 対策の修正が複雑なため、Two-Stage を推奨)
+        # (End-to-End 学習は OOM 対策の修正が複雑なため,Two-Stage を推奨)
         print("\n--- Strategy: End-to-End Learning (Skipped) ---")
         print("End-to-End is complex to manage memory for. Please use Two-Stage (END_TO_END_TRAINING = False).")
         pass 
@@ -445,7 +445,7 @@ def run_inference():
         target_embeddings_cpu = sequence_embeddings_cpu[:, predict_indices].permute(1, 0, 2)
         
         # --- 🚀 修正 (Refactor): RNN+Predictor を一括でGPU実行 ---
-        # (推論時のVRAMが不足する場合は、ここもバッチ処理が必要になります)
+        # (推論時のVRAMが不足する場合は,ここもバッチ処理が必要になります)
         print(f"Running RNN + Predictor for {len(predict_indices)} influencers...")
         try:
             target_embeddings_gpu = target_embeddings_cpu.to(device)
@@ -520,7 +520,7 @@ def run_inference():
 # --- 7. アテンション可視化・分析関数 ---
 def analyze_and_visualize_attention(top_n=20):
     """
-    推論を実行し、アテンション、Grad*Input, SHAP, IG, LRP の貢献度を可視化・保存する。
+    推論を実行し,アテンション,Grad*Input, SHAP, IG, LRP の貢献度を可視化・保存する。
     """
     print("\n\n" + "="*50)
     print("🧠 STARTING XAI ANALYSIS & VISUALIZATION")
@@ -566,8 +566,8 @@ def analyze_and_visualize_attention(top_n=20):
     inference_input_graphs = predict_graphs[:-1]
     
     # --- 1. GCNエンコードの事前計算 (CPUキャッシュ) ---
-    # 貢献度分析 (backward) のため、 no_grad の *外* でGCNを実行すると
-    # メモリを大量消費するため、GCNは no_grad で実行し、
+    # 貢献度分析 (backward) のため, no_grad の *外* でGCNを実行すると
+    # メモリを大量消費するため,GCNは no_grad で実行し,
     # 貢献度分析は「RNNの入力 (final_rep)」から開始します。
     print("Running GCN Encoding for analysis (results to CPU)...")
     model.gcn_encoder.eval()

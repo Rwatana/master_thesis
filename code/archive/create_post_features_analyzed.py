@@ -25,8 +25,8 @@ except LookupError:
 # === 1. 投稿カテゴリ分析の定義 (★ Ryomaさんによる編集が必要) ===
 
 # カテゴリの優先順位リスト
-# 複数のキーワードが一致した場合、このリストの順序が優先されます。
-# （例：'food' と 'travel' が両方あれば、'food' が優先される）
+# 複数のキーワードが一致した場合,このリストの順序が優先されます。
+# （例：'food' と 'travel' が両方あれば,'food' が優先される）
 CATEGORY_PRIORITY = [
     'food', 
     'travel', 
@@ -96,13 +96,13 @@ def determine_post_category(caption, normalized_influencer_category):
         keywords = POST_CATEGORY_KEYWORDS.get(category, [])
         for keyword in keywords:
             # 正規表現で単語として一致するかをチェック（例：'food' が 'foodie' に誤爆しないよう）
-            # ただし、日本語も考慮し、単純な 'in' 演算子の方が広範囲を拾える
+            # ただし,日本語も考慮し,単純な 'in' 演算子の方が広範囲を拾える
             # ここでは単純な 'in' を使います（精度を上げるなら要調整）
             if keyword in lower_caption:
-                # キーワードが見つかったら、そのカテゴリを返す
+                # キーワードが見つかったら,そのカテゴリを返す
                 return category
     
-    # どのキーワードも見つからなければ、インフルエンサーの正規化カテゴリを返す
+    # どのキーワードも見つからなければ,インフルエンサーの正規化カテゴリを返す
     return normalized_influencer_category
 
 def count_emojis(text):
@@ -152,7 +152,7 @@ def calculate_comment_stats(comments_data, post_owner_username, vader_analyzer):
 
 def process_post_file(file_path_tuple):
     """
-    単一の.infoファイルを処理し、1行分のデータを辞書として返す
+    単一の.infoファイルを処理し,1行分のデータを辞書として返す
     """
     file_path, influencer_category_raw, vader_analyzer = file_path_tuple
     

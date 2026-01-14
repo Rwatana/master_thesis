@@ -24,7 +24,7 @@ def main():
             print(f"読み込み成功: {INPUT_FILE_CPU_FALLBACK}\n")
         except FileNotFoundError:
             print(f"エラー: {INPUT_FILE} も {INPUT_FILE_CPU_FALLBACK} も見つかりませんでした。")
-            print("ファイル名が正しいか、スクリプトが正しい場所で実行されているか確認してください。")
+            print("ファイル名が正しいか,スクリプトが正しい場所で実行されているか確認してください。")
             return
     except Exception as e:
         print(f"CSVの読み込み中に予期せぬエラーが発生しました: {e}")
@@ -37,7 +37,7 @@ def main():
     # NaN (検出ゼロ) を除外
     all_objects_series = df['all_objects_detected'].dropna()
     
-    # コンマで分割し、全てのオブジェクトを単一のリスト（all_objects_list）に平坦化
+    # コンマで分割し,全てのオブジェクトを単一のリスト（all_objects_list）に平坦化
     all_objects_list = []
     for item_list_str in all_objects_series:
         all_objects_list.extend(item_list_str.split(','))

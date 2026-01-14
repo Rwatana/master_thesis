@@ -83,7 +83,7 @@ def main():
         return
 
     # 1. 処理対象のファイルリストを作成
-    #    今回はファイルパスだけでなく、メタデータも一緒にスキャン
+    #    今回はファイルパスだけでなく,メタデータも一緒にスキャン
     tasks = []
     logging.info("スキャン中: 'organized_images' ディレクトリ...")
     for category in os.listdir(base_dir):
@@ -139,7 +139,7 @@ def main():
             
             try:
                 # ★ パイプラインにファイルパスの *リスト* を渡す
-                # これにより、パイプラインが内部で最適化されたバッチ処理を行う
+                # これにより,パイプラインが内部で最適化されたバッチ処理を行う
                 batch_results = detector(image_path_batch)
                 
                 # 結果をCSV行に変換

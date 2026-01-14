@@ -24,7 +24,7 @@ def prepare_graph_data():
         where each graph Gt is represented by its feature matrix (Xt) and adjacency structure (At).
     JA: この関数は論文の「Heterogeneous Information Networks」セクションを実装します。
         k個の異種ネットワークの時系列データ G = {G1, G2, ..., Gk} を構築します。
-        各グラフGtは、特徴量行列(Xt)と隣接構造(At)によって表現されます。
+        各グラフGtは,特徴量行列(Xt)と隣接構造(At)によって表現されます。
     """
     print("Loading data files...")
         df_influencers = pd.read_csv(INFLUENCERS_FILE, sep='\t', skiprows=[1], dtype=str)
@@ -111,7 +111,7 @@ class GCNEncoder(nn.Module):
     EN: Implements the "Graph Convolutional Networks" section of the paper.
         Generates node representation Rt from each graph Gt.
     JA: 論文の「Graph Convolutional Networks」セクションを実装。
-        各グラフGtから、ノード表現Rtを生成します。
+        各グラフGtから,ノード表現Rtを生成します。
     """
     def __init__(self, in_channels, hidden_channels, num_layers=2):
         super(GCNEncoder, self).__init__()
@@ -183,12 +183,12 @@ class InfluencerRankModel(nn.Module):
         self.gcn_encoder = GCNEncoder(feature_dim, gcn_dim, num_gcn_layers)
         
         # EN: The RNN's input dimension must match the GCN's concatenated output dimension.
-        # JA: RNNの入力次元は、GCNの連結された出力次元と一致する必要があります。
+        # JA: RNNの入力次元は,GCNの連結された出力次元と一致する必要があります。
         rnn_input_dim = gcn_dim * num_gcn_layers
         self.attentive_rnn = AttentiveRNN(rnn_input_dim, rnn_dim)
         
         # EN: Implements "Engagement Score Estimation", Equation (7): ŷu = Fc(ReLU(Fb(cu)))
-        # JA: 「Engagement Score Estimation」を実装、数式 (7): ŷu = Fc(ReLU(Fb(cu)))
+        # JA: 「Engagement Score Estimation」を実装,数式 (7): ŷu = Fc(ReLU(Fb(cu)))
         self.predictor = nn.Sequential(
             Linear(rnn_dim, 16), # Fb(·)
             ReLU(),
@@ -202,7 +202,7 @@ class InfluencerRankModel(nn.Module):
         sequence_embeddings = torch.stack(monthly_embeddings, dim=1)
         
         # EN: Get the final context vector 'c' using the attentive RNN.
-        # JA: アテンション付きRNNを使い、最終的な文脈ベクトル 'c' を取得します。
+        # JA: アテンション付きRNNを使い,最終的な文脈ベクトル 'c' を取得します。
         final_user_representation = self.attentive_rnn(sequence_embeddings)
         
         # EN: Predict the final engagement score 'ŷ'.
@@ -226,8 +226,8 @@ def main():
     
     # EN: Implements "List-wise Ranking and Optimization". While the paper proposes a list-wise loss (Eq. 8),
     #     this code uses MarginRankingLoss, a common pairwise alternative that also learns relative order.
-    # JA: 「List-wise Ranking and Optimization」を実装。論文はリストワイズ損失 (数式 8) を提案していますが、
-    #     このコードでは同様に順序関係を学習する、一般的なペアワイズ損失の代替であるMarginRankingLossを使用します。
+    # JA: 「List-wise Ranking and Optimization」を実装。論文はリストワイズ損失 (数式 8) を提案していますが,
+    #     このコードでは同様に順序関係を学習する,一般的なペアワイズ損失の代替であるMarginRankingLossを使用します。
     criterion = nn.MarginRankingLoss(margin=1.0)
 
     num_epochs = 10

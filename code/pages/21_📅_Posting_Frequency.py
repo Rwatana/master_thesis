@@ -17,7 +17,7 @@ def load_processed_data(filepath):
 
 # --- UI描画 ---
 st.title("📅 投稿頻度の一貫性分析")
-st.info("インフルエンサーの投稿頻度が時間と共にどう変化したかを、移動平均を用いて可視化します。")
+st.info("インフルエンサーの投稿頻度が時間と共にどう変化したかを,移動平均を用いて可視化します。")
 
 # --- データの準備 ---
 df_posts = load_processed_data('preprocessed_posts_with_metadata.csv')
@@ -42,11 +42,11 @@ if user_posts_df.empty:
 else:
     # 2. 日ごとの投稿数を集計
     user_posts_df.set_index('datetime', inplace=True)
-    # 1日ごとにリサンプリングし、投稿数をカウント
+    # 1日ごとにリサンプリングし,投稿数をカウント
     daily_post_counts = user_posts_df.resample('D').size().rename('daily_posts')
 
     # 3. 移動平均を計算
-    # rolling()で指定した日数分のデータをウィンドウとし、その平均を計算
+    # rolling()で指定した日数分のデータをウィンドウとし,その平均を計算
     rolling_avg_posts = daily_post_counts.rolling(window=f'{window_size}D').mean()
     rolling_avg_posts = rolling_avg_posts.reset_index() # プロットのためにインデックスを列に戻す
 
@@ -63,10 +63,10 @@ else:
     fig.update_yaxes(rangemode='tozero')
     
     st.plotly_chart(fig, use_container_width=True)
-    st.write(f"上のグラフは、各時点において**過去{window_size}日間**の「1日あたりの平均投稿数」を示しています。")
+    st.write(f"上のグラフは,各時点において**過去{window_size}日間**の「1日あたりの平均投稿数」を示しています。")
     st.info("""
     **分析のポイント**:
     - **グラフが安定している**: 一貫したペースで投稿を続けていることを示します。
     - **グラフが急上昇している**: 特定の期間に集中的に投稿している（例: キャンペーン期間など）ことを示します。
-    - **グラフが下降している**: 投稿のペースが落ちている、あるいは活動が休止気味であることを示唆します。
+    - **グラフが下降している**: 投稿のペースが落ちている,あるいは活動が休止気味であることを示唆します。
     """)

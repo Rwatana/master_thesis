@@ -1219,7 +1219,7 @@ def maskopt_e2e_explain(
                             pred_abl = float(wrapper.predict_with_gates(ab_f, base_e).item())
                     diff = pred_unmasked - pred_abl
                 else:
-                    # fallback: gate_zero推奨なので、ここは同等に扱う
+                    # fallback: gate_zero推奨なので,ここは同等に扱う
                     ab_f = base_f.clone()
                     ab_f[j] = 0.0
                     with torch.no_grad():

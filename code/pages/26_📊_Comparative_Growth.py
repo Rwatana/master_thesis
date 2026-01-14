@@ -22,12 +22,12 @@ def load_growth_data(filepath):
         st.error(f"ファイル '{filepath}' が見つかりません。先に `growth_analyzer.py` を実行してください。")
         return None
 
-# ▼▼▼ 修正: influencers.txtを読み込み、列名を整形する ▼▼▼
+# ▼▼▼ 修正: influencers.txtを読み込み,列名を整形する ▼▼▼
 @st.cache_data
 def load_influencer_data(filepath):
-    """influencers.txtを読み込み、列名を整形する"""
+    """influencers.txtを読み込み,列名を整形する"""
     try:
-        # skiprows=[1]を削除し、ヘッダーに関わらず列名を直接指定
+        # skiprows=[1]を削除し,ヘッダーに関わらず列名を直接指定
         df = pd.read_csv(filepath, sep='\t')
         df.columns = ['Username', 'Category', 'followers', 'Followees', 'Posts']
         return df
@@ -39,7 +39,7 @@ def load_influencer_data(filepath):
 
 # --- UI描画 ---
 st.title("📊 成長率 比較分析")
-st.info("インフルエンサーの成長率を「カテゴリ」や「規模」でグループ化し、同じ土俵でのパフォーマンスを比較します。")
+st.info("インフルエンサーの成長率を「カテゴリ」や「規模」でグループ化し,同じ土俵でのパフォーマンスを比較します。")
 
 # --- データの準備 ---
 df_growth = load_growth_data('growth_rates_normalized.csv')
@@ -50,7 +50,7 @@ if df_growth is None or df_influencers is None:
 
 # ▼▼▼ 修正: カテゴリとフォロワー数の両方を結合 ▼▼▼
 # 成長率データにカテゴリとフォロワー数情報を結合
-# df_growthの'followers'列は分類に使っただけなので、influencers.txtの最新情報で上書きする
+# df_growthの'followers'列は分類に使っただけなので,influencers.txtの最新情報で上書きする
 df_growth_no_followers = df_growth.drop(columns=['followers'], errors='ignore')
 df_analysis = pd.merge(df_growth_no_followers, df_influencers[['Username', 'Category', 'followers']], left_on='username', right_on='Username', how='left')
 # ▲▲▲ 修正 ▲▲▲
@@ -71,7 +71,7 @@ tab1, tab2, tab3 = st.tabs(["カテゴリ別 比較", "規模別 比較", "カ�
 
 with tab1:
     st.header("カテゴリ別の平均成長率")
-    st.write("どのカテゴリのインフルエンサーが、全体的に成長しやすい傾向にあるかを示します。")
+    st.write("どのカテゴリのインフルエンサーが,全体的に成長しやすい傾向にあるかを示します。")
     
     # カテゴリごとの平均成長率を計算
     category_growth = df_analysis.groupby('Category')[growth_column].median().sort_values(ascending=False)
@@ -85,7 +85,7 @@ with tab1:
 
 with tab2:
     st.header("インフルエンサー規模別の平均成長率")
-    st.write("どの規模のインフルエンサーが、最も成長ポテンシャルが高いかを示します。")
+    st.write("どの規模のインフルエンサーが,最も成長ポテンシャルが高いかを示します。")
     
     # 規模ごとの平均成長率を計算
     type_order = ['Nano', 'Micro', 'Macro', 'Mega']
@@ -100,7 +100,7 @@ with tab2:
 
 with tab3:
     st.header("カテゴリ × 規模 ごとの成長率分布")
-    st.write("同じカテゴリ・同じ規模のインフルエンサー同士のパフォーマンスを比較します。箱ひげ図は、グループ内のばらつきや中央値、外れ値を示します。")
+    st.write("同じカテゴリ・同じ規模のインフルエンサー同士のパフォーマンスを比較します。箱ひげ図は,グループ内のばらつきや中央値,外れ値を示します。")
 
     fig3 = px.box(
         df_analysis,

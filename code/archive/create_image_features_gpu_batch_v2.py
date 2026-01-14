@@ -12,8 +12,8 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 Image.MAX_IMAGE_PIXELS = None
 
 # --- バッチサイズ設定 (GPUメモリに応じて調整) ---
-# H100 (80GB VRAM) のため、512から開始。
-# OOM (Out of Memory) エラーが出る場合は 256 に、余裕がありそうなら 1024 に調整してください。
+# H100 (80GB VRAM) のため,512から開始。
+# OOM (Out of Memory) エラーが出る場合は 256 に,余裕がありそうなら 1024 に調整してください。
 BATCH_SIZE = 2048
 
 def parse_filename(file_path):

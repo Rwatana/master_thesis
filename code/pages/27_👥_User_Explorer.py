@@ -19,7 +19,7 @@ def load_growth_data(filepath):
 def load_influencer_data(filepath):
     """influencers.txtを読み込む"""
     try:
-        # skiprows=[1]を削除し、ヘッダーに関わらず列名を直接指定
+        # skiprows=[1]を削除し,ヘッダーに関わらず列名を直接指定
         df = pd.read_csv(filepath, sep='\t')
         df.columns = ['Username', 'Category', 'followers_info', 'Followees', 'Posts']
         return df
@@ -31,11 +31,11 @@ def load_influencer_data(filepath):
 
 # --- UI描画 ---
 st.title("👥 ユーザーエクスプローラー")
-st.info("インフルエンサーを「カテゴリ」や「規模」でグループ化し、各グループに属するユーザーを成長率の高い順に表示します。")
+st.info("インフルエンサーを「カテゴリ」や「規模」でグループ化し,各グループに属するユーザーを成長率の高い順に表示します。")
 
 # --- データの準備 ---
 df_growth = load_growth_data('growth_rates_normalized.csv')
-# ▼▼▼ 修正: influencers.txtを読み込み、カテゴリ情報を結合する ▼▼▼
+# ▼▼▼ 修正: influencers.txtを読み込み,カテゴリ情報を結合する ▼▼▼
 df_influencers = load_influencer_data('influencers.txt')
 
 if df_growth is None or df_influencers is None:
@@ -65,7 +65,7 @@ columns_to_display = [
 
 with tab1:
     st.header("カテゴリ別 ユーザーリスト")
-    st.write("各カテゴリに属するインフルエンサーを、選択した成長指標の高い順に表示します。")
+    st.write("各カテゴリに属するインフルエンサーを,選択した成長指標の高い順に表示します。")
 
     for category in sorted(df_analysis['Category'].dropna().unique()):
         with st.expander(f"📁 カテゴリ: {category}"):
@@ -96,7 +96,7 @@ with tab2:
 
 with tab3:
     st.header("カテゴリ × 規模 詳細リスト")
-    st.write("カテゴリと規模の両方でグループ化した、より詳細なユーザーリストです。")
+    st.write("カテゴリと規模の両方でグループ化した,より詳細なユーザーリストです。")
     
     for category in sorted(df_analysis['Category'].dropna().unique()):
         with st.expander(f"📁 カテゴリ: {category}"):

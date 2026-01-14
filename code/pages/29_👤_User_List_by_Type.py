@@ -43,7 +43,7 @@ def calculate_posting_period(filepath):
 
 # --- UI描画 ---
 st.title("👤 ユーザーリスト（規模別）")
-st.info("インフルエンサーの規模、カテゴリ、活動期間で絞り込みを行い、各ユーザーの成長率や活動期間を比較します。")
+st.info("インフルエンサーの規模,カテゴリ,活動期間で絞り込みを行い,各ユーザーの成長率や活動期間を比較します。")
 
 # --- データの準備 ---
 df_growth = load_growth_data('growth_rates_normalized.csv')

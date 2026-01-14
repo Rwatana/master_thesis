@@ -22,7 +22,7 @@ def load_hashtag_data(filepath):
 
 @st.cache_data
 def load_all_post_details_for_validation():
-    """全投稿の.infoファイルを読み込み、分析に必要な特徴量を生成する"""
+    """全投稿の.infoファイルを読み込み,分析に必要な特徴量を生成する"""
     info_dir = 'posts_info/unzipped_data_7z/info/'
     all_post_details = []
     try:
@@ -62,7 +62,7 @@ def load_all_post_details_for_validation():
 
 # --- UI描画 ---
 st.title("🎭 論文検証『アイデンティティワーク』(Bergs et al., 2023)")
-st.info("インフルエンサーのアイデンティティ（自己認識）の変化と、コンテンツ戦略の関係性を分析します。")
+st.info("インフルエンサーのアイデンティティ（自己認識）の変化と,コンテンツ戦略の関係性を分析します。")
 
 # --- データの準備 ---
 df_analysis = load_all_post_details_for_validation()
@@ -77,7 +77,7 @@ tab1, tab2, tab3 = st.tabs(["1. ネガティブな自己開示", "2. コンテ�
 
 with tab1:
     st.header("仮説：ネガティブな自己開示はエンゲージメントを高めるか？")
-    st.markdown("**論文の発見**: メンタルヘルスの苦悩などをオープンに共有した投稿が、最も高いエンゲージメントを得ていた。")
+    st.markdown("**論文の発見**: メンタルヘルスの苦悩などをオープンに共有した投稿が,最も高いエンゲージメントを得ていた。")
     
     # 感情をカテゴリに分類
     df_analysis['sentiment_category'] = 'Neutral'
@@ -94,11 +94,11 @@ with tab1:
     avg_engagement_sentiment = df_analysis.groupby('sentiment_category')['engagement'].mean().sort_values(ascending=False)
     st.write("平均エンゲージメント:")
     st.dataframe(avg_engagement_sentiment)
-    st.success("**結論**: このデータセットでも、**特に強いネガティブな感情（Highly Negative）**を表現した投稿が、ポジティブな投稿よりも高い平均エンゲージメントを獲得する傾向が見られます。これは論文の発見を支持する結果です。")
+    st.success("**結論**: このデータセットでも,**特に強いネガティブな感情（Highly Negative）**を表現した投稿が,ポジティブな投稿よりも高い平均エンゲージメントを獲得する傾向が見られます。これは論文の発見を支持する結果です。")
 
 with tab2:
     st.header("検証：インフルエンサーはコンテンツ戦略を進化させるか？")
-    st.markdown("**論文の発見**: インフルエンサーは自身のアイデンティティを実験・変化させる過程で、使用するハッシュタグなどを変化させる。")
+    st.markdown("**論文の発見**: インフルエンサーは自身のアイデンティティを実験・変化させる過程で,使用するハッシュタグなどを変化させる。")
 
     user_list = sorted(df_hashtags['username'].unique())
     selected_user = st.selectbox("分析したいユーザーを選択:", options=user_list, key="tab2_user_select")
@@ -119,13 +119,13 @@ with tab2:
                     st.dataframe(period_df['hashtag'].value_counts().head(5), height=220)
                 else:
                     st.write("データなし")
-        st.success("**結論**: 多くのユーザーで、時間と共に使用するハッシュタグのトップ5が変化していることが観察できます。これは論文で述べられている**アイデンティティの実験**を裏付けています。")
+        st.success("**結論**: 多くのユーザーで,時間と共に使用するハッシュタグのトップ5が変化していることが観察できます。これは論文で述べられている**アイデンティティの実験**を裏付けています。")
     else:
         st.warning("このユーザーのハッシュタグデータがありません。")
 
 with tab3:
     st.header("探査：アイデンティティを多重化（アカウント放棄）した可能性のあるユーザーは？")
-    st.markdown("**論文の発見**: 一部のインフルエンサーは、古いアカウントを放棄し、新しいアイデンティティで別のアカウントを始めることがある。")
+    st.markdown("**論文の発見**: 一部のインフルエンサーは,古いアカウントを放棄し,新しいアイデンティティで別のアカウントを始めることがある。")
     
     # 最後の投稿日と投稿間隔を計算
     last_post = df_analysis.groupby('username')['datetime'].max().rename('last_post_date')
@@ -138,11 +138,11 @@ with tab3:
     summary_df['days_since_last_post'] = (data_end_date - summary_df['last_post_date']).dt.days
     summary_df['avg_interval_days'] = summary_df['avg_interval_days'].dt.days.fillna(0)
     
-    # 平均投稿間隔の5倍以上、かつ90日以上投稿がないユーザーを「放棄の可能性あり」とする
+    # 平均投稿間隔の5倍以上,かつ90日以上投稿がないユーザーを「放棄の可能性あり」とする
     potential_abandoned = summary_df[
         (summary_df['days_since_last_post'] > summary_df['avg_interval_days'] * 5) &
         (summary_df['days_since_last_post'] > 90)
     ].sort_values('days_since_last_post', ascending=False)
     
     st.dataframe(potential_abandoned, use_container_width=True)
-    st.info("**考察**: 上記リストは、自身の平均投稿間隔と比べて**長期間投稿が途絶えている**ユーザーです。論文で述べられているように、彼らが古いアイデンティティを放棄し、新しいアカウントに移行した可能性が考えられます。")
+    st.info("**考察**: 上記リストは,自身の平均投稿間隔と比べて**長期間投稿が途絶えている**ユーザーです。論文で述べられているように,彼らが古いアイデンティティを放棄し,新しいアカウントに移行した可能性が考えられます。")

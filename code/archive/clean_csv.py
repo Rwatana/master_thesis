@@ -18,7 +18,7 @@ def clean_record_worker(record):
 
 def clean_csv_file_parallel():
     """
-    並列処理を使用して、キャプション内に改行が含まれるCSVファイルを
+    並列処理を使用して,キャプション内に改行が含まれるCSVファイルを
     1行1レコードのクリーンな形式に整形して新しいファイルに保存する。
     """
     print(f"--- ファイル '{INPUT_FILE}' のクリーニングを開始します ---")
@@ -30,9 +30,9 @@ def clean_csv_file_parallel():
         print(f"エラー: '{INPUT_FILE}' が見つかりません。")
         return
 
-    # --- Step 1 & 2 (シーケンシャル処理): レコード境界を特定し、内部の改行を置換 ---
-    # この部分は安全に並列化するのが難しく、通常は十分に高速です。
-    print("レコード境界を特定し、内部の改行を置換しています...")
+    # --- Step 1 & 2 (シーケンシャル処理): レコード境界を特定し,内部の改行を置換 ---
+    # この部分は安全に並列化するのが難しく,通常は十分に高速です。
+    print("レコード境界を特定し,内部の改行を置換しています...")
     pattern = re.compile(r'(\n[a-zA-Z0-9_.-]+,\d{4}-\d{2}-\d{2})')
     content_with_delimiters = pattern.sub(r' ||NEW_RECORD|| \1', content)
     content_cleaned_newlines = content_with_delimiters.replace('\n', ' ')
@@ -59,7 +59,7 @@ def clean_csv_file_parallel():
                 f.write(record + '\n')
 
     print("\n--- クリーニング完了 ---")
-    # 最初のヘッダー行も1レコードとしてカウントされるため、-1 は不要
+    # 最初のヘッダー行も1レコードとしてカウントされるため,-1 は不要
     print(f"✅ 約 {len(cleaned_records)} 件のレコードを '{OUTPUT_FILE}' に保存しました。")
     print("今後はこのクリーンなファイルを読み込むようにしてください。")
 

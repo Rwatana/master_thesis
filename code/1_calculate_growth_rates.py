@@ -14,11 +14,11 @@ OUTPUT_FILE = 'growth_rates_normalized.csv'
 
 def calculate_growth_for_user(user_data_with_followers):
     """
-    単一ユーザーのデータを受け取り、正規化成長率とカテゴリを計算するワーカー関数。
+    単一ユーザーのデータを受け取り,正規化成長率とカテゴリを計算するワーカー関数。
     """
     username, user_df, follower_count = user_data_with_followers
     
-    # 統計的に意味のある回帰を行うため、最低5投稿は必要とする
+    # 統計的に意味のある回帰を行うため,最低5投稿は必要とする
     if len(user_df) < 5:
         return None
 
@@ -34,7 +34,7 @@ def calculate_growth_for_user(user_data_with_followers):
     model.fit(X, y_likes)
     likes_slope = model.coef_[0]
     average_likes = y_likes.mean()
-    # 0除算を避けつつ、正規化成長率をパーセントで計算
+    # 0除算を避けつつ,正規化成長率をパーセントで計算
     normalized_likes_growth = (likes_slope / average_likes) * 100 if average_likes > 1 else 0
 
     # --- コメント数の分析 ---

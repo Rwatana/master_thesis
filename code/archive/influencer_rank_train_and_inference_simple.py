@@ -111,12 +111,12 @@ def prepare_graph_data(end_date, num_months=12, metric_numerator='likes', metric
         # ✅✅✅ ここからが修正箇所 ✅✅✅
         if metric_denominator == 'followers':
             # 論文の定義 E = (avg_likes) / followers に従う
-            # 1. まず、月間の「平均」エンゲージメントを計算 (合計エンゲージメント / 投稿数)
+            # 1. まず,月間の「平均」エンゲージメントを計算 (合計エンゲージメント / 投稿数)
             monthly_agg['avg_engagement_per_post'] = 0.0
             post_count_mask = monthly_agg['post_count'] > 0
             monthly_agg.loc[post_count_mask, 'avg_engagement_per_post'] = monthly_agg.loc[post_count_mask, 'numerator'] / monthly_agg.loc[post_count_mask, 'post_count']
             
-            # 2. 次に、その平均値をフォロワー数で割る
+            # 2. 次に,その平均値をフォロワー数で割る
             merged_data = pd.merge(monthly_agg, static_features[['Username', 'followers']], on='Username', how='left')
             merged_data['engagement'] = 0.0
             followers_mask = merged_data['followers'] > 0
@@ -124,7 +124,7 @@ def prepare_graph_data(end_date, num_months=12, metric_numerator='likes', metric
             merged_data.loc[followers_mask, 'engagement'] = merged_data.loc[followers_mask, 'avg_engagement_per_post'] / merged_data.loc[followers_mask, 'followers']
             
         else: # デフォルトは 'posts'
-            # こちらは「1投稿あたりの平均」なので、元の計算で正しい
+            # こちらは「1投稿あたりの平均」なので,元の計算で正しい
             merged_data = monthly_agg
             merged_data['engagement'] = 0.0
             mask = merged_data['post_count'] > 0
@@ -182,7 +182,7 @@ class BatchedListwiseRankingLoss(nn.Module):
 
 # ✅ 元のmain関数を学習専用の関数として名前変更 (中身は変更なし)
 def train_and_save_model():
-    """モデルを学習させ、重みをファイルに保存する元のコード"""
+    """モデルを学習させ,重みをファイルに保存する元のコード"""
     END_TO_END_TRAINING = False
     GCN_DIM = 128
     NUM_GCN_LAYERS = 2
@@ -273,7 +273,7 @@ def train_and_save_model():
 # ✅✅✅ --- 新しく追加したヘルパー関数 --- ✅✅✅
 def display_relevance_distribution(scores, title):
     """
-    エンゲージメントスコアのリストを受け取り、
+    エンゲージメントスコアのリストを受け取り,
     Table 2に基づいた関連性レベルの分布を表示する。
     """
     # Relevance Engagement rate E(·)
@@ -335,7 +335,7 @@ def calculate_rbp(true_scores_in_predicted_order, p=0.95):
 
 # ✅✅✅ --- NDCG@Kの計算を追加した推論関数 --- ✅✅✅
 def run_inference():
-    """学習済みモデルをロードし、最新データで推論を行い、各種評価指標を計算する"""
+    """学習済みモデルをロードし,最新データで推論を行い,各種評価指標を計算する"""
     METRIC_NUMERATOR = 'likes_and_comments'
     # 分母: 'posts' または 'followers'
     METRIC_DENOMINATOR = 'followers'
@@ -455,8 +455,8 @@ if __name__ == '__main__':
     # --- 実行するプロセスを選択 ---
     # ----------------------------------------------------------------
     
-    # モデルを学習させたい場合は、こちらを実行
+    # モデルを学習させたい場合は,こちらを実行
     # train_and_save_model()
     
-    # 学習済みモデルで推論（予測）だけを行いたい場合は、こちらをコメント解除して実行
+    # 学習済みモデルで推論（予測）だけを行いたい場合は,こちらをコメント解除して実行
     run_inference()

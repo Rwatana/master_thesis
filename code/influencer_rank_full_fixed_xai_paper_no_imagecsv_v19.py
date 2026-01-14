@@ -2615,7 +2615,7 @@ def compute_two_ndcgs(df, k_list=(1, 10, 50, 100, 200)):
     pred = df["pred_score"].to_numpy(dtype=float)
 
     # (A) continuous NDCG: relevance = engagement rate (linear gain 推奨)
-    # 連続値に exp2 を使うと極端に差が増幅されるので、まずは linear が扱いやすい
+    # 連続値に exp2 を使うと極端に差が増幅されるので,まずは linear が扱いやすい
     out = {}
     for k in k_list:
         out[f"ndcg_cont_at_{k}"] = ndcg_at_k(true_e, pred, k=k, gain="linear")

@@ -30,7 +30,7 @@ def prepare_graph_data(end_date, num_months=12, metric_numerator='likes', metric
     """
     指定された終了日までのNヶ月間のグラフデータセットを構築する。
     指定された期間に活動のあったインフルエンサーのみを対象とする。
-    (この関数はテンソルをCPU上で作成し、メモリに保持します)
+    (この関数はテンソルをCPU上で作成し,メモリに保持します)
     """
     print(f"\nBuilding graph sequence for {num_months} months ending on {end_date.strftime('%Y-%m')}...")
     print(f"Using Engagement Metric: {metric_numerator} / {metric_denominator}")
@@ -191,7 +191,7 @@ class InfluencerRankModel(nn.Module):
     def forward(self, graph_sequence, target_indices, device, debug_print=False):
         """
         モデルのフォワードパス全体。
-        `device` を引数として受け取り、計算をそのデバイス上で実行する。
+        `device` を引数として受け取り,計算をそのデバイス上で実行する。
         """
         if debug_print: 
             print(f"\n--- 🐛 DEBUG: Model Forward Pass (BatchSize={len(target_indices)}) ---")
@@ -220,14 +220,14 @@ class InfluencerRankModel(nn.Module):
             sequence_embeddings_list.append(gcn_out)
         
         # [Seq_Len, Num_Nodes, GCN_Out_Feat]
-        # gcn_out は既に 'device' 上にあるため、stack されたテンソルも 'device' 上にある
+        # gcn_out は既に 'device' 上にあるため,stack されたテンソルも 'device' 上にある
         sequence_embeddings = torch.stack(sequence_embeddings_list)
         if debug_print: print(f"\n[3] Stacked GCN Embeddings (Seq, AllNodes, Feat): {sequence_embeddings.shape} (on {sequence_embeddings.device})")
         
         # --- 3. ターゲット選択 & 転置 ---
         # [Batch_Size, Seq_Len, GCN_Out_Feat]
-        # `target_indices` は CPU のままでも、GPU のテンソル `sequence_embeddings` へのインデックスとして機能する
-        # (ただし、train_and_save_model ではインデックスも GPU に送る)
+        # `target_indices` は CPU のままでも,GPU のテンソル `sequence_embeddings` へのインデックスとして機能する
+        # (ただし,train_and_save_model ではインデックスも GPU に送る)
         target_embeddings = sequence_embeddings[:, target_indices].permute(1, 0, 2)
         if debug_print: print(f"[3] Target Embeddings (Batch, Seq, Feat):       {target_embeddings.shape}")
 
@@ -325,12 +325,12 @@ def train_and_save_model():
     alpha = 1 
     
     true_scores = monthly_graphs[-1].y[influencer_indices]
-    # .cpu() は、GPUテンソルからNumpy配列に変換する前に必要
+    # .cpu() は,GPUテンソルからNumpy配列に変換する前に必要
     display_relevance_distribution(true_scores.squeeze().cpu().numpy(), "📊 Training Data Ground Truth Distribution")
     
     # DataLoader は CPU 上でインデックスとスコアを保持します
     dataset = TensorDataset(torch.tensor(influencer_indices, dtype=torch.long), true_scores)
-    # pin_memory=True は、CPUからGPUへのデータ転送を高速化する（オプション）
+    # pin_memory=True は,CPUからGPUへのデータ転送を高速化する（オプション）
     dataloader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True, drop_last=True, pin_memory=True if DEVICE.type == 'cuda' else False)
     
     if not END_TO_END_TRAINING:
@@ -466,12 +466,12 @@ def run_inference():
         projection_dim=PROJECTION_DIM
     )
     
-    # ✅ GPU対応 (9): モデルをロードする前に、まずGPUに転送する
-    # (こうしないと、ロード時にCPU/GPUのミスマッチエラーが起きる可能性がある)
+    # ✅ GPU対応 (9): モデルをロードする前に,まずGPUに転送する
+    # (こうしないと,ロード時にCPU/GPUのミスマッチエラーが起きる可能性がある)
     model.to(DEVICE) 
     
     try:
-        # map_location=DEVICE を使うことで、GPU上で学習したモデルを
+        # map_location=DEVICE を使うことで,GPU上で学習したモデルを
         # CPUしかない環境でもロードできるようになる（今回はGPU->GPUなので不要だが安全策）
         model.load_state_dict(torch.load(MODEL_SAVE_PATH, map_location=DEVICE))
         print(f"Successfully loaded model from '{MODEL_SAVE_PATH}' (on {DEVICE})")
@@ -486,7 +486,7 @@ def run_inference():
     with torch.no_grad():
         print("\n--- 🐛 DEBUG: Inference ---")
         # ✅ GPU対応 (10): 推論時も model.forward に `device=DEVICE` を渡す
-        # predict_indices はPythonリストなので、そのまま渡してOK
+        # predict_indices はPythonリストなので,そのまま渡してOK
         predicted_scores = model(inference_input_graphs, predict_indices, device=DEVICE, debug_print=True)
         print("--- 🐛 End Debug ---")
 

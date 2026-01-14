@@ -19,7 +19,7 @@ MODEL_SAVE_PATH = 'influencer_rank_model.pth' # 学習済みモデルの保存�
 # --- データ準備関数 ---
 def prepare_graph_data():
     """
-    各種CSVからデータを読み込み、月ごとのグラフデータセットを構築する。
+    各種CSVからデータを読み込み,月ごとのグラフデータセットを構築する。
     """
     print("Loading data files...")
     df_influencers = pd.read_csv(INFLUENCERS_FILE, sep='\t', skiprows=[1], dtype=str)
@@ -174,7 +174,7 @@ def main():
     # モデルのインスタンス化 (入力特徴量は7次元)
     model = InfluencerRankModel(feature_dim=7, gcn_dim=32, rnn_dim=64)
     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
-    # 論文はList-wise Ranking Lossだが、ここでは代替としてMSELossを使用
+    # 論文はList-wise Ranking Lossだが,ここでは代替としてMSELossを使用
     criterion = nn.MSELoss() 
 
     num_epochs = 10

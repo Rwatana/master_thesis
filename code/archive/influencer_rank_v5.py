@@ -51,11 +51,11 @@ def prepare_graph_data(end_date, num_months=12, metric_numerator='likes', metric
     df_posts['month'] = df_posts['datetime'].dt.to_period('M').dt.start_time
 
     # ✅✅✅ --- 変更点：活動のあったインフルエンサーのみに絞り込む --- ✅✅✅
-    # 1. posts_2017.csv から、2017年に一度でも投稿したユーザーのリストを作成
+    # 1. posts_2017.csv から,2017年に一度でも投稿したユーザーのリストを作成
     active_influencers_set = set(df_posts['username'].unique())
     print(f"Found {len(active_influencers_set):,} active influencers in {PREPROCESSED_FILE}.")
 
-    # 2. influencers.txt のリストを、活動のあったユーザーのみにフィルタリング
+    # 2. influencers.txt のリストを,活動のあったユーザーのみにフィルタリング
     df_influencers = df_influencers_master[df_influencers_master['username'].isin(active_influencers_set)].copy()
     # --- 修正ここまで ---
 
@@ -396,7 +396,7 @@ def train_and_save_model():
         # デバッグプリントを一度だけ実行
         batch_indices_debug, _ = next(iter(dataloader))
         print("\n--- 🐛 DEBUG: End-to-End (1 Batch) ---")
-        # model.forward を呼び出し、デバッグプリントを有効化
+        # model.forward を呼び出し,デバッグプリントを有効化
         _ = model(monthly_graphs, batch_indices_debug, debug_print=True) 
         print("--- 🐛 End Debug ---")
             
@@ -459,7 +459,7 @@ def run_inference():
         print(f"Error: Model file not found at '{MODEL_SAVE_PATH}'. Please run training first.")
         return
 
-    # 推論には最後の月(12月)のデータを使わず、それ以前の11ヶ月分を使う
+    # 推論には最後の月(12月)のデータを使わず,それ以前の11ヶ月分を使う
     inference_input_graphs = predict_graphs[:-1] 
     # 正解ラベルとして最後の月(12月)のデータを使う
     ground_truth_graph = predict_graphs[-1]

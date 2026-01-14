@@ -22,7 +22,7 @@ MODEL_SAVE_PATH = f'influencer_rank_model_{time.strftime("%Y%m%d")}.pth' # 学�
 # --- 2. データ準備関数 (変更なし) ---
 def prepare_graph_data():
     """
-    各種CSVからデータを読み込み、月ごとのグラフデータセットを構築する。
+    各種CSVからデータを読み込み,月ごとのグラフデータセットを構築する。
     """
     print("Loading data files...")
     # --- 堅牢なファイル読み込み ---
@@ -148,7 +148,7 @@ class InfluencerRankModel(nn.Module):
         )
 
     def forward(self, monthly_graphs):
-        # このフォワードパスは、バッチ処理前の事前計算でのみ使用
+        # このフォワードパスは,バッチ処理前の事前計算でのみ使用
         monthly_embeddings = [self.gcn_encoder(graph.x, graph.edge_index) for graph in monthly_graphs]
         return torch.stack(monthly_embeddings, dim=1)
 
@@ -190,7 +190,7 @@ def main():
         print("No graph data was created. Exiting.")
         return
 
-    # --- モデルとオプティマイザ、損失関数の初期化 ---
+    # --- モデルとオプティマイザ,損失関数の初期化 ---
     model = InfluencerRankModel(
         feature_dim=7, gcn_dim=GCN_DIM, rnn_dim=RNN_DIM,
         num_gcn_layers=NUM_GCN_LAYERS, dropout_prob=DROPOUT_PROB
@@ -252,7 +252,7 @@ def main():
         
         for epoch in range(NUM_EPOCHS):
             # 2. GCN計算をエポックの開始時に実行
-            # (注意: 本来はバッチごとだが、CPUでの実行可能性を考慮しエポックごとに行う妥協案)
+            # (注意: 本来はバッチごとだが,CPUでの実行可能性を考慮しエポックごとに行う妥協案)
             print(f"Epoch {epoch+1}/{NUM_EPOCHS}: Performing GCN forward pass for this epoch...")
             monthly_embeddings_list = [model.gcn_encoder(g.x, g.edge_index) for g in monthly_graphs]
             sequence_embeddings = torch.stack(monthly_embeddings_list, dim=1)
@@ -271,7 +271,7 @@ def main():
                 batch_true_scores_reshaped = batch_true_scores.view(LISTS_PER_BATCH, LIST_SIZE)
                 loss = criterion(predicted_scores_reshaped, batch_true_scores_reshaped)
                 
-                # 誤差がGCNまで逆伝播し、モデル全体の重みが更新される
+                # 誤差がGCNまで逆伝播し,モデル全体の重みが更新される
                 loss.backward()
                 optimizer.step()
                 total_loss += loss.item()

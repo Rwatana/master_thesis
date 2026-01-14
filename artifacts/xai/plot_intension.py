@@ -20,7 +20,7 @@ def process_and_plot(csv_path, is_edge=True):
     target_col = 'Neighbor' if is_edge else 'Name'
     
     # 2. 重複排除ロジック
-    # 重要度が高い順に並び替え、同じ名前のものは最初（最大値）だけ残す
+    # 重要度が高い順に並び替え,同じ名前のものは最初（最大値）だけ残す
     df = df.sort_values('Importance', ascending=False)
     df = df.drop_duplicates(subset=[target_col], keep='first')
 

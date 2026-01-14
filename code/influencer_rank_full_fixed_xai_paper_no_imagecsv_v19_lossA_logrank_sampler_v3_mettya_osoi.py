@@ -697,7 +697,7 @@ def prepare_graph_data(end_date, num_months=12, metric_numerator='likes', metric
 
     cat_dummies = pd.get_dummies(profile_features["category_clean"], prefix="cat")
 
-    # 文字列列 category / category_clean は落として、one-hotだけ残す
+    # 文字列列 category / category_clean は落として,one-hotだけ残す
     profile_features = pd.concat(
         [profile_features.drop(columns=["category", "category_clean"], errors="ignore"), cat_dummies],
         axis=1
@@ -2779,7 +2779,7 @@ def compute_two_ndcgs(df, k_list=(1, 10, 50, 100, 200)):
     pred = df["pred_score"].to_numpy(dtype=float)
 
     # (A) continuous NDCG: relevance = engagement rate (linear gain 推奨)
-    # 連続値に exp2 を使うと極端に差が増幅されるので、まずは linear が扱いやすい
+    # 連続値に exp2 を使うと極端に差が増幅されるので,まずは linear が扱いやすい
     out = {}
     for k in k_list:
         out[f"ndcg_cont_at_{k}"] = ndcg_at_k(true_e, pred, k=k, gain="linear")

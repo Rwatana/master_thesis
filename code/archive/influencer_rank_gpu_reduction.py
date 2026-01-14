@@ -20,7 +20,7 @@ MODEL_SAVE_PATH = 'influencer_rank_model_listwise.pth'
 # --- 2. データ準備関数 ---
 def prepare_graph_data():
     """
-    各種CSVからデータを読み込み、月ごとのグラフデータセットを構築する。
+    各種CSVからデータを読み込み,月ごとのグラフデータセットを構築する。
     """
     print("Loading data files...")
     # --- Robustly clean and load influencers.txt ---

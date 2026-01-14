@@ -1366,7 +1366,7 @@ def _di_plot_curves(df_curves: pd.DataFrame, out_prefix: str, title_prefix: str)
 
     outs = []
     for (kind, mode), sub in df_curves.groupby(["kind", "mode"], dropna=False):
-        # aggregate over replicates (randomは複数rep、他はrep=0のみ)
+        # aggregate over replicates (randomは複数rep,他はrep=0のみ)
         g = sub.groupby(["strategy", "k", "k_frac"], as_index=False).agg(
             y_mean=("delta_drop(full-pred)" if mode == "deletion" else "gain_norm((pred-base)/(full-base))", "mean"),
             y_std =("delta_drop(full-pred)" if mode == "deletion" else "gain_norm((pred-base)/(full-base))", "std"),

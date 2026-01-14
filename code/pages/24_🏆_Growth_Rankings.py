@@ -33,7 +33,7 @@ def load_user_post_data(username):
 
 # --- UI描画 ---
 st.title("🏆 成長率ランキング分析")
-st.info("事前に計算された成長率スコアに基づき、インフルエンサーをランキング形式で表示・分析します。")
+st.info("事前に計算された成長率スコアに基づき,インフルエンサーをランキング形式で表示・分析します。")
 
 # --- データの準備 ---
 df_growth = load_growth_data('growth_rates_normalized.csv')

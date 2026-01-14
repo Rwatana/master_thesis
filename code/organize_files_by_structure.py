@@ -31,7 +31,7 @@ def move_file_worker(filename):
         target_dir = os.path.join(ORGANIZED_OUTPUT_DIR, category, username)
         
         # ターゲットディレクトリが存在しない場合は作成
-        # exist_ok=True は、ディレクトリが既に存在してもエラーにしないオプション
+        # exist_ok=True は,ディレクトリが既に存在してもエラーにしないオプション
         os.makedirs(target_dir, exist_ok=True)
         
         # ファイルの移動元と移動先のフルパスを定義
@@ -42,7 +42,7 @@ def move_file_worker(filename):
         shutil.move(source_path, target_path)
         
     except Exception as e:
-        # エラーが発生した場合、どのファイルで問題が起きたかを表示
+        # エラーが発生した場合,どのファイルで問題が起きたかを表示
         print(f"エラー: ファイル '{filename}' の処理中に問題が発生しました: {e}")
 
 def organize_files_in_background():
@@ -75,7 +75,7 @@ def organize_files_in_background():
         return
 
     # --- 3. 並列処理でファイルの移動を実行 ---
-    # ファイル移動はI/Oバウンドな処理なので、ThreadPoolExecutorが適しています
+    # ファイル移動はI/Oバウンドな処理なので,ThreadPoolExecutorが適しています
     # max_workers=None で利用可能な最大限のスレッドを使用します
     with concurrent.futures.ThreadPoolExecutor(max_workers=480) as executor:
         # tqdmを使って進捗バーを表示

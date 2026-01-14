@@ -51,11 +51,11 @@ def prepare_graph_data(end_date, num_months=12, metric_numerator='likes', metric
     df_posts['month'] = df_posts['datetime'].dt.to_period('M').dt.start_time
 
     # ✅✅✅ --- 変更点：活動のあったインフルエンサーのみに絞り込む --- ✅✅✅
-    # 1. posts_2017.csv から、2017年に一度でも投稿したユーザーのリストを作成
+    # 1. posts_2017.csv から,2017年に一度でも投稿したユーザーのリストを作成
     active_influencers_set = set(df_posts['username'].unique())
     print(f"Found {len(active_influencers_set):,} active influencers in {PREPROCESSED_FILE}.")
 
-    # 2. influencers.txt のリストを、活動のあったユーザーのみにフィルタリング
+    # 2. influencers.txt のリストを,活動のあったユーザーのみにフィルタリング
     df_influencers = df_influencers_master[df_influencers_master['username'].isin(active_influencers_set)].copy()
     # --- 修正ここまで ---
 
@@ -314,7 +314,7 @@ def train_and_save_model():
                 # 3. 2つの損失を合計
                 loss = loss_listwise + alpha * loss_pointwise
 
-                # 誤差がGCNまで逆伝播し、モデル全体の重みが更新される
+                # 誤差がGCNまで逆伝播し,モデル全体の重みが更新される
                 loss.backward()
                 optimizer.step()
                 total_loss += loss.item()

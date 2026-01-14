@@ -21,7 +21,7 @@ def load_influencer_data(filepath):
 
 def process_single_file(filepath):
     """
-    単一の.infoファイルを処理し、辞書として結果を返すワーカー関数
+    単一の.infoファイルを処理し,辞書として結果を返すワーカー関数
     """
     try:
         with open(filepath, 'r', encoding='utf-8') as f:
@@ -83,7 +83,7 @@ def load_all_post_metadata(info_dir, influencers_df):
     return pd.DataFrame(all_post_details)
 
 def main(categories):
-    """メインの分析処理を実行し、結果をファイルに保存する"""
+    """メインの分析処理を実行し,結果をファイルに保存する"""
     
     # --- 1. 出力ディレクトリの作成 ---
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")

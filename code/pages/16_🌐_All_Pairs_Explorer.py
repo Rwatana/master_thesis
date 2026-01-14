@@ -29,7 +29,7 @@ def load_influencer_data(filepath):
 # --- 全ペア計算関数 ---
 @st.cache_data
 def calculate_all_cross_category_pairs(df_mentions, df_influencers):
-    """全ての異カテゴリ間メンションペアを抽出し、集計する"""
+    """全ての異カテゴリ間メンションペアを抽出し,集計する"""
     if df_mentions is None or df_influencers is None:
         return pd.DataFrame()
 
@@ -57,7 +57,7 @@ def calculate_all_cross_category_pairs(df_mentions, df_influencers):
     # 4. 異なるカテゴリ間のペアのみをフィルタリング
     cross_category_pairs = df_merged[df_merged['mentioner_category'] != df_merged['mentioned_category']]
     
-    # 不要な列を削除し、列名を整形
+    # 不要な列を削除し,列名を整形
     final_df = cross_category_pairs[['username', 'mentioner_category', 'mention', 'mentioned_category', 'mention_count']]
     final_df.columns = ['メンションしたユーザー', 'メンション元カテゴリ', 'メンションされたユーザー', 'メンション先カテゴリ', 'メンション回数']
     
@@ -66,7 +66,7 @@ def calculate_all_cross_category_pairs(df_mentions, df_influencers):
 
 # --- UI描画 ---
 st.title("🌐 異カテゴリ間メンション 全ペア分析")
-st.info("データセット内の全インフルエンサーのうち、異なるカテゴリに属するユーザー同士のメンション関係を分析します。")
+st.info("データセット内の全インフルエンサーのうち,異なるカテゴリに属するユーザー同士のメンション関係を分析します。")
 
 # --- データの読み込み ---
 df_mentions = load_mention_data('output_mentions_all_parallel.csv')

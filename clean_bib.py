@@ -9,15 +9,15 @@ import re
 def normalize_title(title):
     """
     タイトルの重複判定を正確にするための正規化。
-    小文字化、記号の除去、余分なスペースの削除を行います。
+    小文字化,記号の除去,余分なスペースの削除を行います。
     """
     if not title:
         return ""
     # {} などのBibTeX特有の記号を削除
     title = title.replace("{", "").replace("}", "")
-    # 英数字以外をスペースに変換し、小文字化
+    # 英数字以外をスペースに変換し,小文字化
     title = re.sub(r'[^a-zA-Z0-9]', ' ', title).lower()
-    # 連続するスペースを一つにまとめ、前後の空白を削除
+    # 連続するスペースを一つにまとめ,前後の空白を削除
     return " ".join(title.split())
 
 
@@ -36,12 +36,12 @@ def remove_duplicates(input_file, output_file):
         title = entry.get('title')
         doi = entry.get('doi')
         
-        # 判定用のキーを作成（DOIがあればDOI、なければ正規化タイトル）
+        # 判定用のキーを作成（DOIがあればDOI,なければ正規化タイトル）
         norm_title = normalize_title(title)
         identity_key = doi if doi else norm_title
 
         if identity_key in unique_entries:
-            # すでに存在するエントリと比較し、情報量が多い方（フィールド数が多い方）を残す
+            # すでに存在するエントリと比較し,情報量が多い方（フィールド数が多い方）を残す
             existing_entry = unique_entries[identity_key]
             if len(entry) > len(existing_entry):
                 unique_entries[identity_key] = entry

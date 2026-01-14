@@ -107,7 +107,7 @@ def build_hetero_graphs(df):
 # --- 3. モデルの定義 ---
 class GCNEncoder(nn.Module):
     """
-    異種混合グラフに変換される「元」となる、単純な（同種混合グラフ用の）GCNエンコーダ
+    異種混合グラフに変換される「元」となる,単純な（同種混合グラフ用の）GCNエンコーダ
     """
     def __init__(self, hidden_channels, out_channels):
         super().__init__()

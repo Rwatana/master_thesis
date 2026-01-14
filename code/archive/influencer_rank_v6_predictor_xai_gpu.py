@@ -286,7 +286,7 @@ def train_and_save_model():
         print("\n--- Strategy: Two-Stage Learning (Fast) ---")
         model.gcn_encoder.eval()
         
-        # --- 🚀 GCNエンコーディングをGPUで実行し、結果はCPUに退避 ---
+        # --- 🚀 GCNエンコーディングをGPUで実行し,結果はCPUに退避 ---
         with torch.no_grad():
             sequence_embeddings = torch.stack([
                 model.gcn_encoder(g.x.to(device), g.edge_index.to(device)).cpu() 
@@ -326,7 +326,7 @@ def train_and_save_model():
             print(f"Epoch {epoch+1}/{NUM_EPOCHS}, Average Batch Loss: {total_loss / len(dataloader):.4f}")
     else:
         print("\n--- Strategy: End-to-End Learning (Slow, High-Memory) ---")
-        # End-to-End 学習では毎回グラフ全体をGPUに送る必要があり、
+        # End-to-End 学習では毎回グラフ全体をGPUに送る必要があり,
         # メモリ不足のリスクが高いままです。今回は修正対象外とします。
         pass # (省略: 上記 Two-Stage と同様の考え方で実装する必要があります)
 
@@ -381,7 +381,7 @@ def run_inference():
     model.eval()
     with torch.no_grad():
         # --- 🚀 推論データをGPUに転送 ---
-        # (推論時はメモリに余裕がある前提で、すべてGPUに送ります)
+        # (推論時はメモリに余裕がある前提で,すべてGPUに送ります)
         inference_input_graphs_gpu = [
             Data(x=g.x.to(device), edge_index=g.edge_index.to(device), y=g.y.to(device)) 
             for g in inference_input_graphs
@@ -451,8 +451,8 @@ def run_inference():
 # --- 7. アテンション可視化・分析関数 ---
 def analyze_and_visualize_attention(top_n=20):
     """
-    推論を実行し、トップNインフルエンサーのアテンションの重みを可視化する。
-    また、アテンションパターンの類似度を分析する。
+    推論を実行し,トップNインフルエンサーのアテンションの重みを可視化する。
+    また,アテンションパターンの類似度を分析する。
     """
     print("\n\n" + "="*50)
     print("🧠 STARTING ATTENTION ANALYSIS & VISUALIZATION")
@@ -640,7 +640,7 @@ if __name__ == '__main__':
     # 乱数シードを固定
     set_seed(42) 
     
-    # モデルの学習と保存 (GPU使用、メモリ対策済み)
+    # モデルの学習と保存 (GPU使用,メモリ対策済み)
     train_and_save_model()
     
     # 通常の推論と評価 (GPU使用)

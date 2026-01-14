@@ -87,7 +87,7 @@ INFLUENCERS_FILE = 'influencers.txt'
 
 def find_best_threshold():
     """
-    最低投稿数の閾値を複数試行し、それぞれの結果を一覧で表示する。
+    最低投稿数の閾値を複数試行し,それぞれの結果を一覧で表示する。
     """
     print("--- 🔬 Finding the best threshold to match the paper's stats ---")
 

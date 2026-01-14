@@ -389,8 +389,8 @@ def run_inference():
 # --- 7. アテンション可視化・分析関数 ---
 def analyze_and_visualize_attention(top_n=20):
     """
-    推論を実行し、トップNインフルエンサーのアテンションの重みを可視化する。
-    また、アテンションパターンの類似度を分析する。
+    推論を実行し,トップNインフルエンサーのアテンションの重みを可視化する。
+    また,アテンションパターンの類似度を分析する。
     """
     print("\n\n" + "="*50)
     print("🧠 STARTING ATTENTION ANALYSIS & VISUALIZATION")

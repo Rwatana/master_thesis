@@ -11,7 +11,7 @@ st.write("サイドバーでインフルエンサーを選択してください�
 def load_data(filepath):
     """influencers.txtを読み込む関数"""
     try:
-        # 1行目がヘッダー、タブ区切りで読み込み
+        # 1行目がヘッダー,タブ区切りで読み込み
         df = pd.read_csv(filepath, sep='\t')
         return df
     except FileNotFoundError:
@@ -33,10 +33,10 @@ if df_influencers is not None:
 
     # 絞り込み用のDataFrameを準備
     if selected_categories:
-        # カテゴリが選択された場合、データフレームをフィルタリング
+        # カテゴリが選択された場合,データフレームをフィルタリング
         filtered_df = df_influencers[df_influencers['Category'].isin(selected_categories)]
     else:
-        # 何も選択されていない場合、全データを対象とする
+        # 何も選択されていない場合,全データを対象とする
         filtered_df = df_influencers
 
     # 2. インフルエンサーの選択

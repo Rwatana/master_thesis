@@ -14,7 +14,7 @@ VALID_CATEGORIES = [
 # --- データ読み込み（キャッシュを利用） ---
 @st.cache_data
 def load_data(filepath):
-    """influencers.txtを正しく読み込み、不正なカテゴリを除外する関数"""
+    """influencers.txtを正しく読み込み,不正なカテゴリを除外する関数"""
     try:
         df = pd.read_csv(filepath, sep='\t')
         # ▼▼▼ 修正点: 不正なデータをクリーニング ▼▼▼

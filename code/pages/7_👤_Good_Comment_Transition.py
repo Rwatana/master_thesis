@@ -89,7 +89,7 @@ def classify_growth_type(df_features, n_clusters=3, method='K-Means'):
 
 # --- データの読み込み ---
 st.title("👤 成長タイプ分析ダッシュボード")
-st.write("サイドバーで分析手法や粒度、ユーザーを選択すると、ダッシュボードが更新されます。")
+st.write("サイドバーで分析手法や粒度,ユーザーを選択すると,ダッシュボードが更新されます。")
 
 df_growth = load_growth_data('growth_rates.csv')
 df_influencers = load_influencer_data('influencers.txt')

@@ -4,14 +4,14 @@ import numpy as np
 
 def calculate_growth_for_user(user_data):
     """
-    単一ユーザーのデータフレームを受け取り、成長率を計算するワーカー関数。
+    単一ユーザーのデータフレームを受け取り,成長率を計算するワーカー関数。
     並列処理のために独立したファイルに定義されています。
     """
     username, user_df = user_data
     if len(user_df) < 2:
         return None
 
-    # データ型が失われる可能性があるため、datetime型に再変換
+    # データ型が失われる可能性があるため,datetime型に再変換
     user_df = user_df.copy()
     user_df['datetime'] = pd.to_datetime(user_df['datetime'])
 

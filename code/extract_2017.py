@@ -40,7 +40,7 @@ def filter_csv_by_year(input_file, output_file):
                 ]
 
                 if not df_2017.empty:
-                    # 最初のチャンクはヘッダー付きで書き込み、以降はヘッダーなしで追記
+                    # 最初のチャンクはヘッダー付きで書き込み,以降はヘッダーなしで追記
                     mode = 'w' if first_chunk else 'a'
                     header = first_chunk
                     

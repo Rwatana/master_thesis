@@ -178,7 +178,7 @@ with st.sidebar:
 
     if load_mode == "ローカル一覧":
         if not pred_candidates:
-            st.warning("CSVが見つかりません。./predictions/ に置くか、アップロードしてください。")
+            st.warning("CSVが見つかりません。./predictions/ に置くか,アップロードしてください。")
         else:
             pred_path = st.selectbox("pred_*.csv を選択", pred_candidates, index=0)
             pred_df = load_csv(pred_path) if pred_path else None
@@ -258,7 +258,7 @@ if "username" in df.columns:
         if "category" in df.columns and "category_txt" in df.columns:
             df["category"] = df["category"].fillna(df["category_txt"])
 else:
-    st.warning("予測CSVに username 列がないため、カテゴリ結合はできません（出力側で username を含めるのが推奨）。")
+    st.warning("予測CSVに username 列がないため,カテゴリ結合はできません（出力側で username を含めるのが推奨）。")
 
 # basic cleanup (after merges, coerce again)
 for c in ["true_score", "pred_score", "baseline_score", "followers_raw", "followers_log1p"]:

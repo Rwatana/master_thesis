@@ -12,7 +12,7 @@ TEST_FILE = os.path.join(BASE_DIR, 'testing', 'posts.csv')
 
 def count_posts_in_split(filepath, split_name):
     """
-    指定されたposts.csvファイルを読み込み、ユーザーごとの投稿数を集計して表示する。
+    指定されたposts.csvファイルを読み込み,ユーザーごとの投稿数を集計して表示する。
     """
     print(f"\n--- {split_name} データセットの投稿数を集計しています ---")
     try:

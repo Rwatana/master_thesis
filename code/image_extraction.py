@@ -15,11 +15,11 @@ import gc
 # ==========================================================
 
 # Macのユニファイドメモリを使用します。
-# メモリが64GB/128GBあるなら 512〜1024 くらいまで増やせますが、
+# メモリが64GB/128GBあるなら 512〜1024 くらいまで増やせますが,
 # 画面が固まらないようまずは 256 か 512 で試してください。
 BATCH_SIZE = 512
 
-# MacのCPU高性能コア数に合わせて設定 (Ultraなら 16〜20 くらいでもOKですが、まずは 8 で安定動作確認)
+# MacのCPU高性能コア数に合わせて設定 (Ultraなら 16〜20 くらいでもOKですが,まずは 8 で安定動作確認)
 NUM_WORKERS = 8
 
 # 出力ファイル名
@@ -44,7 +44,7 @@ class InfluencerImageDataset(Dataset):
         return len(self.task_list)
 
     def calculate_stats(self, img_bgr):
-        """OpenCVを使用して、輝度・色彩度・色温度を計算"""
+        """OpenCVを使用して,輝度・色彩度・色温度を計算"""
         try:
             if img_bgr is None: return 0.0, 0.0, 0.0
             
@@ -167,13 +167,13 @@ def main():
     model = ViTForImageClassification.from_pretrained(model_name).to(device)
     model.eval()
 
-    # MacではFP16 (Half) は動作が不安定な場合があるため、安全のためFloat32で実行します。
+    # MacではFP16 (Half) は動作が不安定な場合があるため,安全のためFloat32で実行します。
     # UltraならFloat32でも十分高速です。
 
     id2label = model.config.id2label
 
     # DataLoader
-    # Macの場合、num_workersが多すぎると "Too many open files" エラーが出ることがあるので注意
+    # Macの場合,num_workersが多すぎると "Too many open files" エラーが出ることがあるので注意
     dataset = InfluencerImageDataset(tasks, processor)
     dataloader = DataLoader(
         dataset, 
@@ -248,7 +248,7 @@ def main():
     print("DONE! All data processed and saved.")
 
 if __name__ == "__main__":
-    # Macでは 'spawn' ではなく 'fork' がデフォルトの場合がありますが、
+    # Macでは 'spawn' ではなく 'fork' がデフォルトの場合がありますが,
     # PyTorchでは 'spawn' が推奨されることが多いため明示します
     try:
         torch.multiprocessing.set_start_method('spawn')

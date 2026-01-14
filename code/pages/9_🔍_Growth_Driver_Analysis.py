@@ -51,7 +51,7 @@ def get_hashtag_analysis_data(df_ht):
     return total_counts.set_index('hashtag')
 
 st.title("🔍 成長要因分析 (Before / After)")
-st.info("エンゲージメントが急上昇した「転換点」を自動検出し、その前後で何が起きたのかを分析します。")
+st.info("エンゲージメントが急上昇した「転換点」を自動検出し,その前後で何が起きたのかを分析します。")
 
 df_posts = load_posts_data('output_beauty_category.csv')
 df_hashtags = load_hashtag_mention_data('output_hashtags_all_parallel.csv', 'hashtag')

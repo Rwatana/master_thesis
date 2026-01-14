@@ -25,7 +25,7 @@ def prepare_graph_data():
         where each graph Gt is represented by its feature matrix (Xt) and adjacency structure (At).
     JA: この関数は論文の「Heterogeneous Information Networks」セクションを実装します。
         k個の異種ネットワークの時系列データ G = {G1, G2, ..., Gk} を構築します。
-        各グラフGtは、特徴量行列(Xt)と隣接構造(At)によって表現されます。
+        各グラフGtは,特徴量行列(Xt)と隣接構造(At)によって表現されます。
     """
     print("Loading data files...")
     # Load all necessary files

@@ -107,7 +107,7 @@ def process_file(filename):
         media_count = owner.get('edge_owner_to_timeline_media', {}).get('count', 0)
         
         # カテゴリ（ビジネスアカウントなどのカテゴリ名）
-        # "8つのカテゴリ"へのマッピングは後処理で行うため、まずは生データを取得
+        # "8つのカテゴリ"へのマッピングは後処理で行うため,まずは生データを取得
         category_name = data.get('category_name') or owner.get('category_name', 'Unknown')
         
         # --- 4. Text Features (Raw) ---
@@ -122,12 +122,12 @@ def process_file(filename):
         if not is_ad and ('#pr' in caption.lower() or '#ad' in caption.lower() or 'タイアップ' in caption):
             is_ad = True
             
-        # 投稿カテゴリ（後で分類するためにテキスト情報を保持、あるいはここで簡易分類）
+        # 投稿カテゴリ（後で分類するためにテキスト情報を保持,あるいはここで簡易分類）
         # ここでは以前のロジックを踏襲しつつフラグ化
         is_informative = 1 if re.search(r'レビュー|review|比較|レポ|howto|解説|まとめ|swatch', caption, re.IGNORECASE) else 0
         
         # フィードバック率計算用（コメント返信など）
-        # ※詳細な返信率はコメントデータ全量が必要だが、ここでは簡易的にコメント機能が有効かを保持
+        # ※詳細な返信率はコメントデータ全量が必要だが,ここでは簡易的にコメント機能が有効かを保持
         comments_disabled = data.get('comments_disabled', False)
         
         # --- 6. Reaction Features (Raw) ---

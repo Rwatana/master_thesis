@@ -10,7 +10,7 @@
 # # --- データ読み込み関数 ---
 # @st.cache_data
 # def load_posts_data(filepath):
-#     """投稿データを読み込み、エンゲージメントを計算する"""
+#     """投稿データを読み込み,エンゲージメントを計算する"""
 #     try:
 #         df = pd.read_csv(filepath, parse_dates=['datetime'])
 #         df['engagement'] = df['likes'] + df['comments']
@@ -21,7 +21,7 @@
 
 # @st.cache_data
 # def load_mention_data(filepath):
-#     """メンションデータを読み込み、タイムスタンプをdatetimeに変換する"""
+#     """メンションデータを読み込み,タイムスタンプをdatetimeに変換する"""
 #     try:
 #         df = pd.read_csv(filepath, header=0, names=['username', 'mention', 'timestamp'])
 #         df['datetime'] = pd.to_datetime(df['timestamp'], unit='s')
@@ -97,7 +97,7 @@
 
 #     G = nx.from_pandas_edgelist(snapshot_mentions, 'username', 'mention', create_using=nx.DiGraph())
 
-#     # 可視化のため、中心性が高い上位Nノードに絞る
+#     # 可視化のため,中心性が高い上位Nノードに絞る
 #     if G.number_of_nodes() > top_n:
 #         top_nodes_dict = dict(sorted(nx.in_degree_centrality(G).items(), key=lambda item: item[1], reverse=True)[:top_n])
 #         top_nodes = list(top_nodes_dict.keys())
@@ -175,7 +175,7 @@
 
 # # --- UI描画 ---
 # st.title("🕸️ ネットワーク影響力とエンゲージメントの比較分析")
-# st.info("エンゲージメントの推移と、指定した期間（移動窓）内での短期的なネットワーク影響力の推移を比較します。")
+# st.info("エンゲージメントの推移と,指定した期間（移動窓）内での短期的なネットワーク影響力の推移を比較します。")
 
 # # --- データの読み込みと準備 ---
 # df_posts = load_posts_data('preprocessed_posts_with_metadata.csv')
@@ -230,7 +230,7 @@
 
 # # --- ネットワーク全体の基本指標の推移 ---
 # st.header("🌐 ネットワーク全体の基本指標の推移")
-# st.info(f"各時点（2週間ごと）で、{centrality_window}日間の移動窓内に存在した総ユーザー数と総メンション数を示します。")
+# st.info(f"各時点（2週間ごと）で,{centrality_window}日間の移動窓内に存在した総ユーザー数と総メンション数を示します。")
 
 # # 指標プロット用にデータを整形
 # df_network_stats = df_metrics[['datetime', 'num_nodes', 'num_edges']].drop_duplicates().set_index('datetime')
@@ -244,7 +244,7 @@
 
 # # --- ネットワーク構造の時点分析（スナップショット） ---
 # st.header("🔬 ネットワーク構造の時点分析（スナップショット）")
-# st.info("上のグラフの日付を選んで、その時点のネットワーク構造を確認できます。")
+# st.info("上のグラフの日付を選んで,その時点のネットワーク構造を確認できます。")
 
 # # 分析時点を選択
 # snapshot_dates = sorted(df_metrics['datetime'].unique())
@@ -297,7 +297,7 @@ def load_user_post_data(username):
 
 # --- UI描画 ---
 st.title("🕸️ ネットワーク影響力の時系列分析")
-st.info("個人のいいね数推移と、ネットワーク全体での影響力（中心性）の推移を比較し、成長の関連性を探ります。")
+st.info("個人のいいね数推移と,ネットワーク全体での影響力（中心性）の推移を比較し,成長の関連性を探ります。")
 
 # --- データの読み込み ---
 df_centrality = load_centrality_data('network_centrality_over_time.csv')
@@ -365,4 +365,4 @@ if st.session_state.run_network_analysis:
         st.dataframe(display_df, use_container_width=True)
 
 else:
-    st.info("👈 サイドバーで分析したいユーザーを選択し、「分析を開始」ボタンを押してください。")
+    st.info("👈 サイドバーで分析したいユーザーを選択し,「分析を開始」ボタンを押してください。")

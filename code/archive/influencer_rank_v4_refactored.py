@@ -273,7 +273,7 @@ def train_and_save_model(model_save_path):
                 pbar.set_postfix(loss=f"{loss.item():.4f}")
             print(f"Epoch {epoch+1}/{NUM_EPOCHS}, Average Batch Loss: {total_loss / len(dataloader):.4f}")
     else:
-        # (End-to-End の部分は省略、必要であれば同様に修正)
+        # (End-to-End の部分は省略,必要であれば同様に修正)
         pass
     
     # ✅ 引数で渡されたパスにモデルを保存
@@ -283,7 +283,7 @@ def train_and_save_model(model_save_path):
     print(f"✅ Model saved to '{model_save_path}'")
     print(f"Total time: {end_time - start_time:.2f} seconds")
 
-# ✅ 変更点: 引数に model_save_path を追加し、評価結果を辞書で返すように変更
+# ✅ 変更点: 引数に model_save_path を追加し,評価結果を辞書で返すように変更
 def run_inference(model_save_path):
     METRIC_NUMERATOR = 'likes_and_comments'
     METRIC_DENOMINATOR = 'followers'

@@ -22,7 +22,7 @@ MODEL_SAVE_PATH = f'influencer_rank_model_{time.strftime("%Y%m%d")}.pth' # 学�
 # --- 2. データ準備関数 ---
 def prepare_graph_data():
     """
-    各種CSVからデータを読み込み、月ごとのグラフデータセットを構築する。
+    各種CSVからデータを読み込み,月ごとのグラフデータセットを構築する。
     """
     print("Loading data files...")
     # --- 堅牢なファイル読み込み ---
@@ -143,7 +143,7 @@ class InfluencerRankModel(nn.Module):
         self.predictor = nn.Sequential(Linear(rnn_dim, 16), ReLU(), Linear(16, 1))
 
     def forward(self, monthly_graphs):
-        # このフォワードパスは、バッチ処理前の事前計算でのみ使用
+        # このフォワードパスは,バッチ処理前の事前計算でのみ使用
         monthly_embeddings = [self.gcn_encoder(graph.x, graph.edge_index) for graph in monthly_graphs]
         return torch.stack(monthly_embeddings, dim=1)
 
@@ -175,8 +175,8 @@ def main():
     model.eval() # 勾配計算をオフ
     with torch.no_grad():
         sequence_embeddings = model.gcn_encoder(monthly_graphs[0].x, monthly_graphs[0].edge_index)
-        # 実際には時系列で計算するが、ここでは単純化のため最初のグラフのみ使用
-        # より正確には、各グラフの埋め込みを計算し、stackする必要がある
+        # 実際には時系列で計算するが,ここでは単純化のため最初のグラフのみ使用
+        # より正確には,各グラフの埋め込みを計算し,stackする必要がある
         # sequence_embeddings = torch.stack([model.gcn_encoder(g.x, g.edge_index) for g in monthly_graphs], dim=1)
 
     # --- データローダーの準備 ---
@@ -197,11 +197,11 @@ def main():
             optimizer.zero_grad()
             
             # バッチ分の時系列特徴量を取得
-            # 本来は時系列データ(sequence_embeddings)を使うが、ここでは単純化
+            # 本来は時系列データ(sequence_embeddings)を使うが,ここでは単純化
             # batch_embeddings = sequence_embeddings[batch_indices] 
             
             # 簡略化したアプローチ: 最後の月の特徴量のみでRNNを模倣
-            # これは論文とは異なるが、メモリ制約のあるCPU環境での代替案
+            # これは論文とは異なるが,メモリ制約のあるCPU環境での代替案
             gcn_output_dim = 32 * NUM_GCN_LAYERS
             dummy_sequence = torch.randn(len(batch_indices), 12, gcn_output_dim) # ダミーの時系列データ
             

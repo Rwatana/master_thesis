@@ -72,7 +72,7 @@ pd.set_option('future.no_silent_downcasting', True)
 
 def restore_edge_group_names(df_edge, wrapper, node_to_idx=None):
     """
-    df_edge の Name が "edge_group_XXX" になっている時に、実名へ復元する。
+    df_edge の Name が "edge_group_XXX" になっている時に,実名へ復元する。
 
     復元ロジック（順に試す）:
       A) XXX が「代表エッジのindex」(0 <= XXX < E) なら ei_exp から相手ノードを復元して名前へ
@@ -119,7 +119,7 @@ def restore_edge_group_names(df_edge, wrapper, node_to_idx=None):
             if not name.startswith("Node_") or (idx_to_node is not None and gid in idx_to_node):
                 return name
 
-        # wrapper が group_keys を持っているなら、gid を group index として解釈して key を引く
+        # wrapper が group_keys を持っているなら,gid を group index として解釈して key を引く
         if group_keys is not None:
             try:
                 if 0 <= gid < len(group_keys):
@@ -134,7 +134,7 @@ def restore_edge_group_names(df_edge, wrapper, node_to_idx=None):
                 pass
         return None
 
-    # 元の Name を保持して、復元後の Name に置換
+    # 元の Name を保持して,復元後の Name に置換
     if "Name_raw" not in df_edge.columns:
         df_edge.insert(1, "Name_raw", df_edge["Name"].astype(str))
 
@@ -2078,7 +2078,7 @@ def maskopt_e2e_explain(
                             pred_abl = float(wrapper.predict_with_gates(ab_f, base_e).item())
                     diff = pred_unmasked - pred_abl
                 else:
-                    # fallback: gate_zero推奨なので、ここは同等に扱う
+                    # fallback: gate_zero推奨なので,ここは同等に扱う
                     ab_f = base_f.clone()
                     ab_f[j] = 0.0
                     with torch.no_grad():

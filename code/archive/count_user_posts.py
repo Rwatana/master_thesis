@@ -11,8 +11,8 @@ OUTPUT_CSV_FILE = 'user_post_counts.csv'
 
 def count_posts_per_user():
     """
-    指定されたディレクトリ内のファイル名を解析し、ユーザーごとのファイル数を集計してCSVに保存する。
-    さらに、influencers.txtとの差分を計算して表示する。
+    指定されたディレクトリ内のファイル名を解析し,ユーザーごとのファイル数を集計してCSVに保存する。
+    さらに,influencers.txtとの差分を計算して表示する。
     """
     print(f"--- ユーザーごとの投稿ファイル数の集計を開始します ---")
     start_time = time.time()
@@ -56,7 +56,7 @@ def count_posts_per_user():
         only_in_txt = influencer_txt_users - info_dir_users
         if only_in_txt:
             print(f"✅ '{INFLUENCERS_FILE}' にのみ存在するユーザーが {len(only_in_txt)} 人見つかりました。")
-            print("   (プロフィール情報はあるが、投稿ファイルがないユーザー)")
+            print("   (プロフィール情報はあるが,投稿ファイルがないユーザー)")
             print(f"   例: {list(only_in_txt)[:5]}") # 最初の5人を例として表示
         else:
             print(f"✅ '{INFLUENCERS_FILE}' の全ユーザーは投稿ファイルを持っています。")
@@ -65,7 +65,7 @@ def count_posts_per_user():
         only_in_dir = info_dir_users - influencer_txt_users
         if only_in_dir:
             print(f"✅ 投稿ファイルのみが存在するユーザーが {len(only_in_dir)} 人見つかりました。")
-            print("   (投稿ファイルはあるが、'influencers.txt' にプロフィール情報がないユーザー)")
+            print("   (投稿ファイルはあるが,'influencers.txt' にプロフィール情報がないユーザー)")
             print(f"   例: {list(only_in_dir)[:5]}") # 最初の5人を例として表示
         else:
             print(f"✅ 投稿ファイルを持つ全ユーザーは '{INFLUENCERS_FILE}' にも記載されています。")

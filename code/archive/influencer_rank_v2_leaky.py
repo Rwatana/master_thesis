@@ -74,7 +74,7 @@ def prepare_graph_data(end_date, num_months=12, metric_numerator='likes', metric
     for col in ['followers', 'followees', 'posts']:
         profile_features[col] = pd.to_numeric(profile_features[col], errors='coerce').fillna(0)
     
-    # ✅✅✅ 変更点: ダミーデータではなく、ファイルから読み込んだ実際のカテゴリを使用 ✅✅✅
+    # ✅✅✅ 変更点: ダミーデータではなく,ファイルから読み込んだ実際のカテゴリを使用 ✅✅✅
     # 1.2 インフルエンサーカテゴリ (ファイルから読み込み)
     # influencers.txt からカテゴリ情報をマージ
     profile_features = pd.merge(profile_features, df_influencers[['username', 'category']], on='username', how='left')

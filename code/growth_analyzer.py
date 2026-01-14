@@ -17,7 +17,7 @@ df_posts_global = None
 
 # --- ワーカー関数 ---
 # def calculate_growth_for_user(user_data):
-#     """単一ユーザーのデータフレームを受け取り、成長率を計算する"""
+#     """単一ユーザーのデータフレームを受け取り,成長率を計算する"""
 #     username, user_df = user_data
 #     if len(user_df) < 2:
 #         return None

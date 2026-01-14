@@ -21,7 +21,7 @@ MODEL_SAVE_PATH = 'influencer_rank_model_listwise_cpu_corrected.pth' # 修正版
 # --- 2. データ準備関数 ---
 def prepare_graph_data():
     """
-    各種CSVからデータを読み込み、月ごとのグラフデータセットを構築する。
+    各種CSVからデータを読み込み,月ごとのグラフデータセットを構築する。
     """
     print("Loading data files...")
     # --- 堅牢なファイル読み込み ---
@@ -142,7 +142,7 @@ class InfluencerRankModel(nn.Module):
         self.predictor = nn.Sequential(Linear(rnn_dim, 16), ReLU(), Linear(16, 1))
 
     def forward(self, monthly_graphs):
-        # このフォワードパスは、バッチ処理前の事前計算でのみ使用
+        # このフォワードパスは,バッチ処理前の事前計算でのみ使用
         monthly_embeddings = [self.gcn_encoder(graph.x, graph.edge_index) for graph in monthly_graphs]
         return torch.stack(monthly_embeddings, dim=1)
 
@@ -170,12 +170,12 @@ def main():
     criterion = ListwiseRankingLoss()
 
     # --- ✅ 変更点 1: GCNによる特徴量埋め込みを事前に計算 ---
-    # 論文のフレームワーク通り、まず全期間のグラフデータをGCNに通し、時系列のノード埋め込みを作成します。
-    # これを事前計算することで、訓練ループ中の計算量を大幅に削減します。
+    # 論文のフレームワーク通り,まず全期間のグラフデータをGCNに通し,時系列のノード埋め込みを作成します。
+    # これを事前計算することで,訓練ループ中の計算量を大幅に削減します。
     print("Pre-computing node embeddings for all months on CPU...")
     model.gcn_encoder.eval() # GCN部分は推論モードで実行
     with torch.no_grad(): # 勾配計算をオフにしてメモリを節約
-        # 全ての月のグラフをGCNに通し、結果をリストに格納
+        # 全ての月のグラフをGCNに通し,結果をリストに格納
         monthly_embeddings_list = [model.gcn_encoder(g.x, g.edge_index) for g in tqdm(monthly_graphs, desc="GCN Encoding")]
         # リストをテンソルに変換 [ノード数, 月数, 埋め込み次元数]
         sequence_embeddings = torch.stack(monthly_embeddings_list, dim=1)
@@ -192,7 +192,7 @@ def main():
     print(f"\n--- Starting training for {num_epochs} epochs with batching ---")
 
     # ✅ 変更点 2: モデルの訓練対象をRNNと予測器に限定
-    # 事前計算した特徴量を使うため、GCN部分は固定（訓練しない）し、RNN以降の部分のみを訓練します。
+    # 事前計算した特徴量を使うため,GCN部分は固定（訓練しない）し,RNN以降の部分のみを訓練します。
     model.attentive_rnn.train()
     model.predictor.train()
     model.gcn_encoder.eval() # GCN部分は評価モードのまま
@@ -202,8 +202,8 @@ def main():
         for batch_indices, batch_true_scores in tqdm(dataloader, desc=f"Epoch {epoch+1}/{num_epochs}"):
             optimizer.zero_grad()
 
-            # ✅ 変更点 3: ダミーデータの代わりに、事前計算した本物の時系列データを入力
-            # バッチに含まれるインフルエンサーのインデックスを使い、対応する時系列埋め込みを取得します。
+            # ✅ 変更点 3: ダミーデータの代わりに,事前計算した本物の時系列データを入力
+            # バッチに含まれるインフルエンサーのインデックスを使い,対応する時系列埋め込みを取得します。
             batch_sequence_embeddings = sequence_embeddings[batch_indices]
 
             final_user_representation = model.attentive_rnn(batch_sequence_embeddings)

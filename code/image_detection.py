@@ -11,7 +11,7 @@ try:
     print("モデルのロードが完了しました。")
 except Exception as e:
     print(f"モデルのロード中にエラーが発生しました: {e}")
-    print("インターネット接続を確認するか、Hugging Face Hubのステータスを確認してください。")
+    print("インターネット接続を確認するか,Hugging Face Hubのステータスを確認してください。")
     exit()
 
 # 2. 判定したい画像を読み込む

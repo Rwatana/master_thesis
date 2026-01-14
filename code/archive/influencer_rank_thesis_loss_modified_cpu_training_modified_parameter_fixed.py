@@ -21,7 +21,7 @@ MODEL_SAVE_PATH = f'influencer_rank_model_fixed_{time.strftime("%Y%m%d")}.pth' #
 # --- 2. データ準備関数 (変更なし) ---
 def prepare_graph_data():
     """
-    各種CSVからデータを読み込み、月ごとのグラフデータセットを構築する。
+    各種CSVからデータを読み込み,月ごとのグラフデータセットを構築する。
     """
     print("Loading data files...")
     # --- 堅牢なファイル読み込み ---
@@ -148,7 +148,7 @@ class InfluencerRankModel(nn.Module):
         )
 
     def forward(self, monthly_graphs):
-        # このフォワードパスは、バッチ処理前の事前計算でのみ使用
+        # このフォワードパスは,バッチ処理前の事前計算でのみ使用
         monthly_embeddings = [self.gcn_encoder(graph.x, graph.edge_index) for graph in monthly_graphs]
         return torch.stack(monthly_embeddings, dim=1)
 
@@ -166,7 +166,7 @@ class BatchedListwiseRankingLoss(nn.Module):
         pred_probs = F.softmax(pred_scores, dim=1)
         true_probs = F.softmax(true_scores, dim=1)
 
-        # 各リストのクロスエントロピー損失を計算し、その平均を返す
+        # 各リストのクロスエントロピー損失を計算し,その平均を返す
         log_pred_probs = torch.log(pred_probs + 1e-9)
         loss_per_list = -torch.sum(true_probs * log_pred_probs, dim=1)
         return torch.mean(loss_per_list)
@@ -184,7 +184,7 @@ def main():
     # ✅ 変更点: 論文で指定されたハイパーパラメータを定義
     GCN_DIM = 128
     NUM_GCN_LAYERS = 2
-    RNN_DIM = 64 # この値は論文に記載がないため、妥当な値を設定
+    RNN_DIM = 64 # この値は論文に記載がないため,妥当な値を設定
     LEARNING_RATE = 0.001
     DROPOUT_PROB = 0.5
     NUM_EPOCHS = 20
@@ -192,7 +192,7 @@ def main():
     LIST_SIZE = 10
     BATCH_SIZE = LISTS_PER_BATCH * LIST_SIZE
 
-    # モデルとオプティマイザ、損失関数を初期化
+    # モデルとオプティマイザ,損失関数を初期化
     model = InfluencerRankModel(
         feature_dim=7,
         gcn_dim=GCN_DIM,
@@ -215,7 +215,7 @@ def main():
     true_scores = monthly_graphs[-1].y
     influencer_true_scores = true_scores[influencer_indices]
     dataset = TensorDataset(torch.tensor(influencer_indices, dtype=torch.long), influencer_true_scores)
-    # ✅ 変更点: バッチサイズを変更し、最後の不完全なバッチは破棄
+    # ✅ 変更点: バッチサイズを変更し,最後の不完全なバッチは破棄
     dataloader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True, drop_last=True)
 
     print(f"\n--- Starting training for {NUM_EPOCHS} epochs with batching ---")
@@ -231,8 +231,8 @@ def main():
             final_user_representation = model.attentive_rnn(batch_sequence_embeddings)
             predicted_scores = model.predictor(final_user_representation)
 
-            # ✅ 変更点: 損失計算のため、テンソルの形状を整形
-            # [10240, 1] -> [1024, 10] に変形し、1024個のリストとして扱う
+            # ✅ 変更点: 損失計算のため,テンソルの形状を整形
+            # [10240, 1] -> [1024, 10] に変形し,1024個のリストとして扱う
             predicted_scores_reshaped = predicted_scores.view(LISTS_PER_BATCH, LIST_SIZE)
             batch_true_scores_reshaped = batch_true_scores.view(LISTS_PER_BATCH, LIST_SIZE)
 

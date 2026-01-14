@@ -12,14 +12,14 @@ YEAR_TO_COUNT = 2017
 
 def check_file_year(filename):
     """
-    単一の.infoファイルを読み込み、投稿年が指定された年と一致するかどうかをチェックする。
-    一致する場合は1を、それ以外は0を返す。
+    単一の.infoファイルを読み込み,投稿年が指定された年と一致するかどうかをチェックする。
+    一致する場合は1を,それ以外は0を返す。
     """
     try:
         filepath = os.path.join(INFO_DIR, filename)
         with open(filepath, 'r', encoding='utf-8') as f:
             # タイムスタンプキーだけを効率的に読み込む（ファイル全体をパースしない）
-            # ただし、単純なjson.load()でも十分高速なため、ここでは可読性を優先
+            # ただし,単純なjson.load()でも十分高速なため,ここでは可読性を優先
             data = json.load(f)
         
         timestamp = data.get('taken_at_timestamp')
@@ -34,7 +34,7 @@ def check_file_year(filename):
 
 def count_posts_in_year_parallel():
     """
-    並列処理を使用して、INFO_DIR内のファイルの投稿年をチェックし、
+    並列処理を使用して,INFO_DIR内のファイルの投稿年をチェックし,
     指定された年の投稿件数を集計する。
     """
     print(f"--- {YEAR_TO_COUNT}年の投稿件数の集計を開始します (並列処理) ---")
@@ -55,10 +55,10 @@ def count_posts_in_year_parallel():
     print(f"{num_processes}個のコアを使用して並列処理を開始します...")
 
     with concurrent.futures.ProcessPoolExecutor(max_workers=num_processes) as executor:
-        # executor.mapは各ファイルに関数を適用し、結果(0 or 1)を返すイテレータを生成
+        # executor.mapは各ファイルに関数を適用し,結果(0 or 1)を返すイテレータを生成
         results_iterator = executor.map(check_file_year, all_files)
         
-        # tqdmで進捗を表示しながら、戻り値(1)の合計を計算
+        # tqdmで進捗を表示しながら,戻り値(1)の合計を計算
         post_count = sum(tqdm(results_iterator, total=len(all_files), desc=f"{YEAR_TO_COUNT}年のファイルを探索中"))
 
     # --- 3. 結果の表示 ---

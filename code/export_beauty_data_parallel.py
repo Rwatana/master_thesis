@@ -20,7 +20,7 @@ def get_beauty_influencers(filepath):
 
 def process_file(filename):
     """
-    単一の.infoファイルを処理して、ハッシュタグとメンションのリストを返すワーカー関数。
+    単一の.infoファイルを処理して,ハッシュタグとメンションのリストを返すワーカー関数。
     """
     source_user = filename.split('-')[0]
     hashtags = []

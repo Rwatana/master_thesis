@@ -14,7 +14,7 @@ df_posts = None
 
 def save_user_file(username):
     """
-    単一ユーザーのデータフレームをフィルタリングし、CSVとして保存するワーカー関数。
+    単一ユーザーのデータフレームをフィルタリングし,CSVとして保存するワーカー関数。
     """
     try:
         # グローバルなdf_postsから該当ユーザーのデータを抽出
@@ -61,7 +61,7 @@ def main():
         results = list(tqdm(executor.map(save_user_file, all_users), total=len(all_users), desc="ユーザーごとにファイルを保存中"))
 
     print("\n--- 処理結果（一部抜粋） ---")
-    # 結果が多すぎる場合があるので、最初と最後の数件だけ表示
+    # 結果が多すぎる場合があるので,最初と最後の数件だけ表示
     for res in results[:5]:
         print(res)
     if len(results) > 10:

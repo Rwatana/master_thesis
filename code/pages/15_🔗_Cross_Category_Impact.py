@@ -38,7 +38,7 @@ def load_user_post_data(username):
 
 # --- UI描画 ---
 st.title("🔗 越境影響分析")
-st.info("個人のいいね数推移と、**他分野のインフルエンサーからメンションされたタイミング**との相関を分析します。")
+st.info("個人のいいね数推移と,**他分野のインフルエンサーからメンションされたタイミング**との相関を分析します。")
 
 # --- データの準備 (軽量なファイルのみ先に読み込む) ---
 df_mentions = load_mention_data('output_mentions_all_parallel.csv')
@@ -82,7 +82,7 @@ if st.session_state.run_cross_analysis:
     user_to_analyze = st.session_state.analyzed_user_cross
     
     with st.spinner(f"'{user_to_analyze}' の投稿データとメンションを分析中..."):
-        # ボタンが押されてから、ユーザー固有のファイルを読み込む
+        # ボタンが押されてから,ユーザー固有のファイルを読み込む
         user_posts_df = load_user_post_data(user_to_analyze)
 
         if user_posts_df is None:
@@ -142,7 +142,7 @@ if st.session_state.run_cross_analysis:
             )
         )
         unique_mentioner_count = cross_category_mentions['username'].nunique()
-        st.success(f"期間中に **{unique_mentioner_count}** 人の他分野インフルエンサーから、合計 **{len(cross_category_mentions)}** 回のメンションがありました。")
+        st.success(f"期間中に **{unique_mentioner_count}** 人の他分野インフルエンサーから,合計 **{len(cross_category_mentions)}** 回のメンションがありました。")
     else:
         st.info("期間中に他分野からのメンションはありませんでした。")
 
@@ -152,7 +152,7 @@ if st.session_state.run_cross_analysis:
     if not cross_category_mentions.empty:
         st.markdown("---")
         st.subheader("異カテゴリ間メンションのペア詳細")
-        st.write("グラフにプロットされた、他分野のインフルエンサーからのメンションの詳細リストです。")
+        st.write("グラフにプロットされた,他分野のインフルエンサーからのメンションの詳細リストです。")
 
         display_df = cross_category_mentions[['datetime', 'username', 'mentioner_category', 'mention']].copy()
         display_df.rename(columns={
@@ -169,4 +169,4 @@ if st.session_state.run_cross_analysis:
 
 else:
     # 初期表示メッセージ
-    st.info("👈 サイドバーで分析したいユーザーを選択し、「分析を開始」ボタンを押してください。")
+    st.info("👈 サイドバーで分析したいユーザーを選択し,「分析を開始」ボタンを押してください。")

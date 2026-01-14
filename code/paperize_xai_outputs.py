@@ -5,12 +5,12 @@ paperize_xai_outputs.py
 
 目的:
   1) xai_export_out 配下にある MaskOpt 出力（summary / feat_*.csv / neighbor_*.csv）を集計
-  2) NeighborName が "nbr_12345" などのプレースホルダの場合、NeighborGlobalIdx を使って「実名」に復元
-  3) 論文に貼れる図 (PNG/PDF) と、表 (CSV/LaTeX) を自動生成
+  2) NeighborName が "nbr_12345" などのプレースホルダの場合,NeighborGlobalIdx を使って「実名」に復元
+  3) 論文に貼れる図 (PNG/PDF) と,表 (CSV/LaTeX) を自動生成
 
 前提:
   - export_maskopt_all_importance_faster_v3.py の出力を想定
-  - Neighbor 実名復元を行う場合は、元データファイル(投稿/hashtags/mentions)が必要
+  - Neighbor 実名復元を行う場合は,元データファイル(投稿/hashtags/mentions)が必要
 
 実行例:
   # すでに実名が CSV に入っている場合（復元不要）
@@ -139,7 +139,7 @@ def build_node_to_idx(
     chunksize: int = 1_000_000,
 ) -> Dict[str, int]:
     """
-    prepare_graph_data と同じ node_to_idx を再現して、node_to_idx(dict: name -> idx) を返します。
+    prepare_graph_data と同じ node_to_idx を再現して,node_to_idx(dict: name -> idx) を返します。
     ※とても重い処理です（ファイルが巨大）。
     """
     # 1) valid users in Dec YYYY-MM
@@ -480,28 +480,28 @@ def write_caption_template(out_md: Path, positions: List[int]) -> None:
     md = []
     md.append("# 図キャプション案（日本語）")
     md.append("")
-    md.append("以下は、そのまま論文に貼れるようにしたキャプションの叩き台です。")
+    md.append("以下は,そのまま論文に貼れるようにしたキャプションの叩き台です。")
     md.append("")
     md.append("## Fig.01 Fidelity")
-    md.append("- MaskOpt 最適化後の fidelity (maskopt_best_fid) の分布。閾値（例: 1e-6）より小さい実行が多いほど、マスク付き予測が元予測を良く保持している。")
+    md.append("- MaskOpt 最適化後の fidelity (maskopt_best_fid) の分布。閾値（例: 1e-6）より小さい実行が多いほど,マスク付き予測が元予測を良く保持している。")
     md.append("")
     md.append("## Fig.02 Top features (pos別)")
-    md.append("- ExplainPos ごとに、平均 |score impact| が大きい特徴量を上位 K 個可視化。モデル予測に寄与する主要因（プロファイル系 / 投稿間隔 / 投稿量など）を示す。")
+    md.append("- ExplainPos ごとに,平均 |score impact| が大きい特徴量を上位 K 個可視化。モデル予測に寄与する主要因（プロファイル系 / 投稿間隔 / 投稿量など）を示す。")
     md.append("")
     md.append("## Fig.03 Top neighbor nodes (pos別)")
-    md.append("- ExplainPos ごとに、近傍ノード（エッジグループ=neighbor）を上位 K 個可視化。構造寄与の代表例（特定ハッシュタグ/メンション/ユーザとの関係など）を示す。")
+    md.append("- ExplainPos ごとに,近傍ノード（エッジグループ=neighbor）を上位 K 個可視化。構造寄与の代表例（特定ハッシュタグ/メンション/ユーザとの関係など）を示す。")
     md.append("")
     md.append("## Fig.04 Feature heatmap")
     md.append(f"- 上位特徴量の寄与を月位置 {positions} に対してヒートマップ化。寄与の時間変化（最近効き始めた/継続的に重要）を視覚化する。")
     md.append("")
     md.append("## Fig.05 Scatter (importance vs impact)")
-    md.append("- ゲート値（importance）と |score impact| の関係を散布図で示す。両者の相関が高いほど、importance が予測スコア変化を良く反映していると解釈できる（ただし非線形・飽和などで相関が低くなる場合もある）。")
+    md.append("- ゲート値（importance）と |score impact| の関係を散布図で示す。両者の相関が高いほど,importance が予測スコア変化を良く反映していると解釈できる（ただし非線形・飽和などで相関が低くなる場合もある）。")
     md.append("")
     md.append("## Fig.06 Total feature vs neighbor impact")
-    md.append("- ExplainPos ごとに、特徴量側の総 |impact| と近傍ノード側の総 |impact| を比較。予測根拠が『特徴量主導』か『構造主導』かを議論する材料。")
+    md.append("- ExplainPos ごとに,特徴量側の総 |impact| と近傍ノード側の総 |impact| を比較。予測根拠が『特徴量主導』か『構造主導』かを議論する材料。")
     md.append("")
     md.append("## Fig.07 Static vs dynamic share")
-    md.append("- 静的特徴（followers/followees/posts_history + cat_/type_）と動的特徴（投稿・コメント・間隔など）で、総寄与の比率を比較。『過去プロフィールが強い』などの考察に対応。")
+    md.append("- 静的特徴（followers/followees/posts_history + cat_/type_）と動的特徴（投稿・コメント・間隔など）で,総寄与の比率を比較。『過去プロフィールが強い』などの考察に対応。")
     out_md.write_text("\n".join(md), encoding="utf-8")
 
 

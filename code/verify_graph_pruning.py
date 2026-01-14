@@ -10,7 +10,7 @@ INFLUENCERS_FILE = 'influencers.txt'
 
 def verify_pruning_process():
     """
-    論文の枝刈り処理を実装し、各段階でのノード数とエッジ数を確認する。
+    論文の枝刈り処理を実装し,各段階でのノード数とエッジ数を確認する。
     """
     print("--- 🔬 Starting Graph Pruning Verification Process ---")
 
@@ -33,7 +33,7 @@ def verify_pruning_process():
     # ノードセットの定義
     influencer_set = set(df_influencers['Username'].astype(str))
     
-    # 論文に従い、インフルエンサーがソース元になっているエッジのみを対象とする
+    # 論文に従い,インフルエンサーがソース元になっているエッジのみを対象とする
     hashtags_from_influencers = df_hashtags[df_hashtags['username'].isin(influencer_set)]
     mentions_from_influencers = df_mentions[df_mentions['username'].isin(influencer_set)]
 
@@ -86,7 +86,7 @@ def verify_pruning_process():
     influencer_ht_counts = defaultdict(int)
     influencer_mt_counts = defaultdict(int)
     
-    # 現在のエッジリストから、ハッシュタグとメンションを再度分離
+    # 現在のエッジリストから,ハッシュタグとメンションを再度分離
     current_edges_ht = [edge for edge in edges_after_node_pruning if edge[1] in hashtag_node_set]
     current_edges_mt = [edge for edge in edges_after_node_pruning if edge[1] in mention_node_set]
     

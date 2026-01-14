@@ -23,7 +23,7 @@ def update_and_save_new_csv():
         cleaned_content = "".join(cleaned_lines)
 
         # 読み込みの実行
-        # on_bad_lines='skip' を追加して、形式が崩れている行を飛ばすようにします
+        # on_bad_lines='skip' を追加して,形式が崩れている行を飛ばすようにします
         try:
             # まずはタブ区切りを試す（txt形式で最も一般的）
             df_info = pd.read_table(io.StringIO(cleaned_content), sep='\t')
@@ -68,7 +68,7 @@ def update_and_save_new_csv():
         )
 
         # 4. 0だった列を更新
-        # text側にデータがあった行のみ更新し、それ以外は元の値を保持
+        # text側にデータがあった行のみ更新し,それ以外は元の値を保持
         df_merged['user_followers'] = df_merged['new_followers'].fillna(df_merged['user_followers'])
         df_merged['user_following'] = df_merged['new_following'].fillna(df_merged['user_following'])
 

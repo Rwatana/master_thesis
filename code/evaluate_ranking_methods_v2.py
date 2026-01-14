@@ -20,7 +20,7 @@ RBP_P = 0.95
 # --- データ読み込み・特徴量エンジニアリング ---
 def prepare_features():
     """
-    分析に必要な全てのデータを読み込み、特徴量を計算して単一のDataFrameにまとめる。
+    分析に必要な全てのデータを読み込み,特徴量を計算して単一のDataFrameにまとめる。
     """
     print("--- 1. データの読み込みと特徴量エンジニアリングを開始 ---")
     
@@ -74,7 +74,7 @@ def calculate_rbp(true_scores_in_predicted_order, p=0.95):
     # 入力がpandas Seriesの場合も考慮して .values を使って numpy 配列を取得
     scores_array = np.asarray(true_scores_in_predicted_order)
     
-    # RBPやNDCGは非負の関連度を想定するため、0未満のスコアを0にクリップする
+    # RBPやNDCGは非負の関連度を想定するため,0未満のスコアを0にクリップする
     scores_array = np.clip(scores_array, 0, None)
     
     max_score = scores_array.max()

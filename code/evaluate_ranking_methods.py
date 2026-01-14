@@ -20,7 +20,7 @@ RBP_P = 0.95
 # --- データ読み込み・特徴量エンジニアリング ---
 def prepare_features():
     """
-    分析に必要な全てのデータを読み込み、特徴量を計算して単一のDataFrameにまとめる。
+    分析に必要な全てのデータを読み込み,特徴量を計算して単一のDataFrameにまとめる。
     """
     print("--- 1. データの読み込みと特徴量エンジニアリングを開始 ---")
     
@@ -57,7 +57,7 @@ def prepare_features():
     growth_threshold = df_features['normalized_likes_growth_pct'].quantile(GROUND_TRUTH_PERCENTILE)
     df_features['is_ground_truth'] = (df_features['normalized_likes_growth_pct'] >= growth_threshold).astype(int)
     
-    # NDCG用に、成長率を6段階の関連度スコアに変換 (論文の表2を模倣)
+    # NDCG用に,成長率を6段階の関連度スコアに変換 (論文の表2を模倣)
     df_features['relevance_score'] = pd.qcut(df_features['normalized_likes_growth_pct'], 6, labels=False, duplicates='drop')
     
     print(f"正解ユーザー数: {df_features['is_ground_truth'].sum()} 人")

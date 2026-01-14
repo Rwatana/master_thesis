@@ -28,7 +28,7 @@ def load_influencer_data(filepath):
 
 # --- UI描画 ---
 st.title("📊 カテゴリ内のインフルエンサー規模分布")
-st.info("各カテゴリ内に、どの規模（Nano, Micro, Macro, Mega）のインフルエンサーが何人存在するかを分析します。")
+st.info("各カテゴリ内に,どの規模（Nano, Micro, Macro, Mega）のインフルエンサーが何人存在するかを分析します。")
 
 # --- データの準備 ---
 df_growth = load_growth_data('growth_rates_normalized.csv')

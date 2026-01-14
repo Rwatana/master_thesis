@@ -37,12 +37,12 @@ def process_single_influencer(username):
         return []
 
 def load_all_posts_data_parallel(influencer_list):
-    """ThreadPoolExecutorを使って、特定カテゴリの投稿データを並列で読み込む。"""
+    """ThreadPoolExecutorを使って,特定カテゴリの投稿データを並列で読み込む。"""
     all_posts = []
-    # os.cpu_count() or 8 などの上限を設定して、スレッドが多すぎないように調整
+    # os.cpu_count() or 8 などの上限を設定して,スレッドが多すぎないように調整
     max_threads = min(32, os.cpu_count() + 4)
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
-        # tqdmのdescを動的に変更できないため、ここではシンプルなmapを使用
+        # tqdmのdescを動的に変更できないため,ここではシンプルなmapを使用
         results = executor.map(process_single_influencer, influencer_list)
     for post_list in results:
         all_posts.extend(post_list)

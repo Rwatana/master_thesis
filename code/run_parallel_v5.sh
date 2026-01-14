@@ -31,7 +31,7 @@ run_experiment() {
   
   if [ $? -ne 0 ]; then
     echo "🚨 Error during run ${RUN_ID}. See output above."
-    # xargsは他のプロセスを止められないが、エラーとして記録
+    # xargsは他のプロセスを止められないが,エラーとして記録
     exit 255 
   else
     echo "--- Finished Run ${i}/${NUM_RUNS} (ID: ${RUN_ID}) ---"
@@ -44,7 +44,7 @@ export RESULTS_DIR
 export PYTHON_SCRIPT
 export NUM_RUNS
 
-# seq で 1 から NUM_RUNS までの数字を生成し、xargs に渡す
+# seq で 1 から NUM_RUNS までの数字を生成し,xargs に渡す
 # -n 1: 一度に1つの引数（数字）を
 # -P $MAX_PARALLEL_JOBS: 最大並列数
 # bash -c 'run_experiment "$@"' _: 各引数（数字）に対してrun_experiment関数を実行
@@ -60,7 +60,7 @@ echo "----------------------------------------------------"
 echo "Combining results into $FINAL_RESULTS_FILE ..."
 
 # ヘッダー処理: 
-# 1. 最初のファイル (run_1.csv) を見つけて、そのヘッダーを最終ファイルにコピー
+# 1. 最初のファイル (run_1.csv) を見つけて,そのヘッダーを最終ファイルにコピー
 FIRST_FILE="${RESULTS_DIR}/run_1.csv"
 if [ -f "$FIRST_FILE" ]; then
     head -n 1 "$FIRST_FILE" > $FINAL_RESULTS_FILE

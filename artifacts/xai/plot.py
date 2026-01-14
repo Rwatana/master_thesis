@@ -24,7 +24,7 @@ def plot_edge_importance(csv_path):
     # 例: "#CES (e1)"
     df['label'] = df.apply(lambda x: f"{x['Neighbor']} (e{int(x['EdgeIdx'])})", axis=1)
 
-    # 4. プロット用にソート (上位20件を表示、Importanceが高い順に上にくるよう調整)
+    # 4. プロット用にソート (上位20件を表示,Importanceが高い順に上にくるよう調整)
     df_sorted = df.sort_values('Importance', ascending=True).tail(20)
 
     # 5. 可視化
@@ -77,7 +77,7 @@ if __name__ == "__main__":
 #         return
 
 #     # 2. Importanceの正規化 (0~1スケール)
-#     # 最小値を0、最大値を1にするMin-Max Scaling
+#     # 最小値を0,最大値を1にするMin-Max Scaling
 #     min_val = df['Importance'].min()
 #     max_val = df['Importance'].max()
     
@@ -88,7 +88,7 @@ if __name__ == "__main__":
 #         df['Importance_scaled'] = 1.0
 
 #     # 3. プロット用にソート (上位20件)
-#     # グラフでは上から順に表示したいため、ascending=Trueでソートしてtail(20)をとる
+#     # グラフでは上から順に表示したいため,ascending=Trueでソートしてtail(20)をとる
 #     df_sorted = df.sort_values('Importance', ascending=True).tail(20)
 
 #     # 4. 可視化

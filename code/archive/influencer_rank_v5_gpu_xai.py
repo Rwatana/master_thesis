@@ -270,7 +270,7 @@ def display_relevance_distribution(scores, title):
     print(dist_df)
 
 def assign_relevance_levels(engagement_rate):
-    """ 論文(Table 2)に基づき、単一のエンゲージメント率を関連レベルに変換する """
+    """ 論文(Table 2)に基づき,単一のエンゲージメント率を関連レベルに変換する """
     if engagement_rate >= 0.10: return 5
     if engagement_rate >= 0.07: return 4
     if engagement_rate >= 0.05: return 3
@@ -334,12 +334,12 @@ def train_and_save_model():
     alpha = 1 # ListwiseとPointwiseのバランス (調整可能)
     
     true_scores = monthly_graphs[-1].y[influencer_indices]
-    # .cpu() は、GPUテンソルからNumpy配列に変換する前に必要
+    # .cpu() は,GPUテンソルからNumpy配列に変換する前に必要
     display_relevance_distribution(true_scores.squeeze().cpu().numpy(), "📊 Training Data Ground Truth Distribution")
     
     # DataLoader は CPU 上でインデックスとスコアを保持します
     dataset = TensorDataset(torch.tensor(influencer_indices, dtype=torch.long), true_scores)
-    # pin_memory=True は、CPUからGPUへのデータ転送を高速化する（オプション）
+    # pin_memory=True は,CPUからGPUへのデータ転送を高速化する（オプション）
     dataloader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True, drop_last=True, pin_memory=True if DEVICE.type == 'cuda' else False)
     
     if not END_TO_END_TRAINING:
@@ -466,7 +466,7 @@ def train_and_save_model():
 # --- ✅ XAI: 順列重要度（Permutation Importance）の分析関数 ---
 def run_permutation_importance(model, base_graphs, target_indices, feature_names, ground_truth_graph, base_ndcg_100, device):
     """
-    順列重要度（Permutation Importance）を計算し、表示する。
+    順列重要度（Permutation Importance）を計算し,表示する。
     NDCG@100 の低下幅を重要度スコアとする。
     """
     print("\n" + "="*50)
@@ -481,11 +481,11 @@ def run_permutation_importance(model, base_graphs, target_indices, feature_names
     # ---
     # ✅ FIX: ここが修正点です。
     # assign_relevance_levelsが配列全体に適用されエラーになっていたのを修正。
-    # pd.Series.apply() を使って、各要素（スコア）ごとに関数を適用します。
+    # pd.Series.apply() を使って,各要素（スコア）ごとに関数を適用します。
     # ---
     # 1. スコアのNumPy配列を取得
     true_scores_numpy = ground_truth_graph.y[target_indices].squeeze().cpu().numpy()
-    # 2. Pandas Seriesに変換し、.apply()で各要素に関数を適用
+    # 2. Pandas Seriesに変換し,.apply()で各要素に関数を適用
     true_relevance_series = pd.Series(true_scores_numpy).apply(assign_relevance_levels)
     # 3. ndcg_scoreが期待する 2D-array 形式に変換
     true_relevance_for_ndcg = true_relevance_series.values.reshape(1, -1)
@@ -494,10 +494,10 @@ def run_permutation_importance(model, base_graphs, target_indices, feature_names
     target_indices_tensor = torch.tensor(target_indices, dtype=torch.long).to(device)
 
     for i, feature_name in enumerate(tqdm(feature_names, desc="Permutation Importance")):
-        # グラフのリストをディープコピーして、元のデータを変更しないようにする
+        # グラフのリストをディープコピーして,元のデータを変更しないようにする
         shuffled_graphs = deepcopy(base_graphs)
         
-        # --- i番目の特徴量を、全ノード・全タイムステップでシャッフル ---
+        # --- i番目の特徴量を,全ノード・全タイムステップでシャッフル ---
         for g in shuffled_graphs:
             # g.x は [Num_Nodes, Num_Features]
             feature_column = g.x[:, i].clone()
@@ -546,7 +546,7 @@ def run_inference():
     start_time = time.time()
     params = {'GCN_DIM': 128, 'NUM_GCN_LAYERS': 2, 'RNN_DIM': 64, 'DROPOUT_PROB': 0.5}
 
-    # ✅ XAI: 特徴量名はファイルからロードするので、_ で受ける
+    # ✅ XAI: 特徴量名はファイルからロードするので,_ で受ける
     latest_date = pd.to_datetime('2017-12-31')
     predict_graphs, predict_indices, node_to_idx, _ = prepare_graph_data(
         end_date=latest_date, num_months=12, 
@@ -571,7 +571,7 @@ def run_inference():
         projection_dim=PROJECTION_DIM
     )
     
-    # ✅ GPU対応 (9): モデルをロードする前に、まずGPUに転送する
+    # ✅ GPU対応 (9): モデルをロードする前に,まずGPUに転送する
     model.to(DEVICE) 
     
     try:
@@ -591,11 +591,11 @@ def run_inference():
         print("\n---  BUG DEBUG: Inference ---")
         
         # ターゲットインデックスをPythonリストからTensorに変換
-        # (forwardメソッドは内部でリストを処理できるが、明示的にTensorにしても良い)
+        # (forwardメソッドは内部でリストを処理できるが,明示的にTensorにしても良い)
         # ここでは元のPythonリスト `predict_indices` をそのまま使う
         
         # ✅ GPU対応 (10): 推論時も model.forward に `device=DEVICE` を渡す
-        # predict_indices はPythonリストなので、そのまま渡してOK
+        # predict_indices はPythonリストなので,そのまま渡してOK
         # ✅ XAI: 予測スコアとアテンションの重みを受け取る
         predicted_scores, attention_weights = model(
             inference_input_graphs, predict_indices, device=DEVICE, debug_print=True
@@ -620,7 +620,7 @@ def run_inference():
     mse = ((df_results['Predicted_Score'] - df_results['True_Score']) ** 2).mean()
     rmse = np.sqrt(mse)
     
-    # NDCG計算のために、予測スコアと真の関連性レベルを準備
+    # NDCG計算のために,予測スコアと真の関連性レベルを準備
     df_results['Relevance'] = df_results['True_Score'].apply(assign_relevance_levels)
     true_relevance = df_results['Relevance'].values.reshape(1, -1)
     predicted_scores_for_ndcg = df_results['Predicted_Score'].values.reshape(1, -1)
@@ -700,7 +700,7 @@ def run_inference():
     # ベースラインのNDCG@100スコアを取得
     base_ndcg_100 = ndcg_results.get('NDCG@100')
     if base_ndcg_100 is None:
-        # 100人未満の場合、計算可能な最大のKで代用
+        # 100人未満の場合,計算可能な最大のKで代用
         max_k = max([k for k in k_values if k <= len(df_results)])
         base_ndcg_100 = ndcg_results.get(f'NDCG@{max_k}', 0.0)
 

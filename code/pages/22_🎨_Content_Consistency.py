@@ -11,7 +11,7 @@ import os
 try:
     nltk.data.find('corpora/stopwords')
 except nltk.downloader.DownloadError:
-    st.info("初回実行のため、NLTKのストップワードリストをダウンロードします。")
+    st.info("初回実行のため,NLTKのストップワードリストをダウンロードします。")
     nltk.download('stopwords')
 
 st.set_page_config(page_title="コンテンツ一貫性分析", layout="wide")
@@ -36,7 +36,7 @@ def analyze_user_topics(df, num_topics, num_words):
     stop_words = list(nltk.corpus.stopwords.words('english'))
     stop_words.extend(['beauty', 'makeup', 'like', 'get', 'product', 'use', 'skin', 'look', 'fashion', 'style'])
     
-    # min_df=2 に変更し、一人のユーザーの投稿でも単語が拾われやすくする
+    # min_df=2 に変更し,一人のユーザーの投稿でも単語が拾われやすくする
     vectorizer = TfidfVectorizer(max_df=0.9, min_df=2, stop_words=stop_words)
     try:
         tfidf = vectorizer.fit_transform(df['caption'].fillna(''))
@@ -60,7 +60,7 @@ def analyze_user_topics(df, num_topics, num_words):
 
 # --- UI描画 ---
 st.title("🎨 コンテンツの一貫性（専門性）分析")
-st.info("ユーザーを選択し、その人の投稿内容から自動的に「トピック」を抽出します。これにより、特定のテーマに集中している「専門家」か、多様な話題に触れる「ジェネラリスト」かを評価します。")
+st.info("ユーザーを選択し,その人の投稿内容から自動的に「トピック」を抽出します。これにより,特定のテーマに集中している「専門家」か,多様な話題に触れる「ジェネラリスト」かを評価します。")
 
 # --- サイドバー ---
 st.sidebar.header("分析対象の選択")
@@ -99,7 +99,7 @@ elif selected_user != st.session_state.analyzed_user_topics:
 if st.session_state.run_topic_analysis:
     user_to_analyze = st.session_state.analyzed_user_topics
     
-    with st.spinner(f"'{user_to_analyze}' の投稿データを読み込み、トピックを分析中..."):
+    with st.spinner(f"'{user_to_analyze}' の投稿データを読み込み,トピックを分析中..."):
         df_user = load_user_post_data(user_to_analyze)
         
         if df_user is not None:
@@ -116,14 +116,14 @@ if st.session_state.run_topic_analysis:
                 if top_topic_percentage > 60:
                     st.success(f"**専門家タイプ**: 投稿の **{top_topic_percentage:.1f}%** が単一のトピック（Topic {topic_distribution.idxmax()}）に集中しています。")
                 elif top_topic_percentage > 40:
-                    st.info(f"**準専門家タイプ**: 特定のトピックに **{top_topic_percentage:.1f}%** が集まっていますが、他の話題にも触れています。")
+                    st.info(f"**準専門家タイプ**: 特定のトピックに **{top_topic_percentage:.1f}%** が集まっていますが,他の話題にも触れています。")
                 else:
-                    st.warning("**ジェネラリストタイプ**: 投稿が複数のトピックに分散しており、多様な内容を発信しています。")
+                    st.warning("**ジェネラリストタイプ**: 投稿が複数のトピックに分散しており,多様な内容を発信しています。")
 
                 fig = px.pie(values=topic_distribution.values, names=topic_distribution.index, title=f'{user_to_analyze}の投稿トピック分布')
                 st.plotly_chart(fig, use_container_width=True)
             else:
-                st.warning("このユーザーの投稿からトピックを抽出できませんでした（投稿数が少ない、または語彙が少ない可能性があります）。")
+                st.warning("このユーザーの投稿からトピックを抽出できませんでした（投稿数が少ない,または語彙が少ない可能性があります）。")
 
             # 2. 各トピックのキーワード
             st.subheader("検出されたトピックのキーワード")
@@ -133,4 +133,4 @@ if st.session_state.run_topic_analysis:
             else:
                 st.warning("キーワードを抽出できませんでした。")
 else:
-    st.info("👈 サイドバーで分析したいユーザーを選択し、「分析を開始」ボタンを押してください。")
+    st.info("👈 サイドバーで分析したいユーザーを選択し,「分析を開始」ボタンを押してください。")

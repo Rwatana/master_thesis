@@ -2219,7 +2219,7 @@ def _get_l2g(g):
 
 def count_nonself_out_edges(g, target_gid: int):
     """
-    g.edge_index のうち、target -> (dst != target) の本数を数える。
+    g.edge_index のうち,target -> (dst != target) の本数を数える。
     戻り: (count, target_local_idx or None, has_target_in_nodeset)
     """
     l2g = _get_l2g(g)
@@ -2290,7 +2290,7 @@ def run_maskopt_for_all_months(
 
     追加したこと:
     - 各 explain_pos で「グラフ上に target の非self out edge があるか」を事前に数える
-    - df_edge が空になった月だけ、(option) use_subgraph=False で再実行して原因切り分け
+    - df_edge が空になった月だけ,(option) use_subgraph=False で再実行して原因切り分け
     """
     model.eval()
 
@@ -2321,13 +2321,13 @@ def run_maskopt_for_all_months(
             "use_subgraph": bool(use_subgraph),
         })
 
-        # グラフに target がそもそもいないなら、MaskOpt以前の問題
+        # グラフに target がそもそもいないなら,MaskOpt以前の問題
         if not has_u:
             print(f"[WARN] target_node {target_node_global_idx} is NOT in node-set at {label}. "
                   f"-> graph construction / active-node filtering issue.")
             continue
 
-        # グラフ上で非self out が 0 なら、「incidentが落ちてる」か「edge_indexがincidentを持ってない」問題
+        # グラフ上で非self out が 0 なら,「incidentが落ちてる」か「edge_indexがincidentを持ってない」問題
         if n_out == 0:
             print(f"[WARN] graph has ZERO non-self out edges at {label}. "
                   f"-> either this month really has no incident edges for this user in graph, "
@@ -2867,7 +2867,7 @@ def compute_two_ndcgs(df, k_list=(1, 10, 50, 100, 200)):
     pred = df["pred_score"].to_numpy(dtype=float)
 
     # (A) continuous NDCG: relevance = engagement rate (linear gain 推奨)
-    # 連続値に exp2 を使うと極端に差が増幅されるので、まずは linear が扱いやすい
+    # 連続値に exp2 を使うと極端に差が増幅されるので,まずは linear が扱いやすい
     out = {}
     for k in k_list:
         out[f"ndcg_cont_at_{k}"] = ndcg_at_k(true_e, pred, k=k, gain="linear")

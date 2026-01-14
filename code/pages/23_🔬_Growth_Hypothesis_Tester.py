@@ -36,7 +36,7 @@ def load_hashtag_mention_data(filepath, target_col_name):
 
 # --- UI描画 ---
 st.title("🔬 成長要因 仮説検証")
-st.info("様々な仮説に基づき、インフルエンサーが成長する要因を探ります。")
+st.info("様々な仮説に基づき,インフルエンサーが成長する要因を探ります。")
 
 # --- データの読み込み (軽量なファイルのみ) ---
 df_growth = load_data('growth_rates.csv')
@@ -47,7 +47,7 @@ if df_growth is None or df_influencers is None:
     st.stop()
 
 if df_growth.empty:
-    st.error("成長率データ (`growth_rates.csv`) が空です。バックグラウンドで `1_calculate_growth_rates.py` を実行して、先に集計ファイルを作成してください。")
+    st.error("成長率データ (`growth_rates.csv`) が空です。バックグラウンドで `1_calculate_growth_rates.py` を実行して,先に集計ファイルを作成してください。")
     st.stop()
 
 
@@ -66,7 +66,7 @@ selected_user = st.sidebar.selectbox("ユーザーを選択:", user_list)
 
 
 # --- 分析タブ ---
-with st.spinner("投稿、メンション、ハッシュタグデータを読み込んでいます..."):
+with st.spinner("投稿,メンション,ハッシュタグデータを読み込んでいます..."):
     df_posts = load_data('preprocessed_posts_with_metadata.csv', date_col=['datetime'])
     df_mentions = load_hashtag_mention_data('output_mentions_all_parallel.csv', 'mention')
     df_hashtags = load_hashtag_mention_data('output_hashtags_all_parallel.csv', 'hashtag')
@@ -81,7 +81,7 @@ tab1, tab2, tab3, tab4 = st.tabs(["メンション分析", "ハッシュタグ�
 user_posts_df = df_posts[df_posts['username'] == selected_user]
 
 with tab1:
-    st.header("仮説：有名になる過程でメンションが増え、特に有名人からのメンションがきっかけになるのではないか？")
+    st.header("仮説：有名になる過程でメンションが増え,特に有名人からのメンションがきっかけになるのではないか？")
     
     mentions_to_user = df_mentions[df_mentions['mention'] == selected_user].copy()
     mentions_to_user.set_index('datetime', inplace=True)
@@ -104,7 +104,7 @@ with tab1:
     famous_mentions = mentions_to_user[mentions_to_user['username'].isin(famous_users_set)]
     
     if not famous_mentions.empty:
-        st.success(f"期間中に **{len(famous_mentions)}** 回、有名人からのメンションがありました。")
+        st.success(f"期間中に **{len(famous_mentions)}** 回,有名人からのメンションがありました。")
         st.dataframe(famous_mentions.reset_index().rename(columns={'username': 'メンションした有名人', 'datetime': '日時'}))
     else:
         st.info("期間中に有名人からのメンションはありませんでした。")
@@ -132,13 +132,13 @@ with tab2:
             new_tags_with_ranks = pd.merge(new_tags_df, hashtag_ranks, on='hashtag', how='left').fillna({'total_usage': 1, 'rank': len(hashtag_ranks)})
             
             st.dataframe(new_tags_with_ranks.sort_values('rank'))
-            st.info("`rank`の順位が低いほど人気のトレンドに乗ったことを、順位が高いほどニッチ/新しいトレンドを開拓した可能性を示します。")
+            st.info("`rank`の順位が低いほど人気のトレンドに乗ったことを,順位が高いほどニッチ/新しいトレンドを開拓した可能性を示します。")
         else:
             st.info("活動の後半で新しく使い始めたハッシュタグは見つかりませんでした。")
     else:
         st.warning("このユーザーのハッシュタグデータはありません。")
 
-# ▼▼▼ 修正点: 比較ロジックを削除し、選択されたユーザーのみ表示 ▼▼▼
+# ▼▼▼ 修正点: 比較ロジックを削除し,選択されたユーザーのみ表示 ▼▼▼
 with tab3:
     st.header("仮説：投稿頻度の一貫性が成長に繋がるのではないか？")
     
@@ -152,7 +152,7 @@ with tab3:
     freq_std = calculate_frequency_std(user_post_data)
     
     st.metric(f"{selected_user} の投稿頻度のばらつき (標準偏差)", f"{freq_std:.2f}")
-    st.info("標準偏差が小さいほど、投稿頻度が**一貫している**ことを示します。")
+    st.info("標準偏差が小さいほど,投稿頻度が**一貫している**ことを示します。")
 # ▲▲▲ 修正点 ▲▲▲
 
 
@@ -176,13 +176,13 @@ with tab4:
         
         if not cross_category_mentions.empty:
             unique_mentioners = cross_category_mentions['username'].nunique()
-            st.success(f"このユーザーは、**{cross_category_mentions['mentioner_category'].nunique()}** の異なる分野の **{unique_mentioners}** 人から、合計 **{len(cross_category_mentions)}** 回のメンションを受けています。")
+            st.success(f"このユーザーは,**{cross_category_mentions['mentioner_category'].nunique()}** の異なる分野の **{unique_mentioners}** 人から,合計 **{len(cross_category_mentions)}** 回のメンションを受けています。")
             
             category_counts = cross_category_mentions['mentioner_category'].value_counts()
             fig_pie = px.pie(values=category_counts.values, names=category_counts.index, title="どの分野からのメンションが多いか")
             st.plotly_chart(fig_pie, use_container_width=True)
         else:
-            st.info("このユーザーは、他分野からのメンションを受けていませんでした。")
+            st.info("このユーザーは,他分野からのメンションを受けていませんでした。")
     else:
         st.warning("このユーザーのカテゴリ情報が見つかりません。")
 

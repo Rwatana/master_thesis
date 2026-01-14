@@ -48,7 +48,7 @@ def generate_three_datasets_fast():
     sparse_users = user_stats.filter((pl.col("active_months") >= 1) & (pl.col("active_months") < 4)).get_column("username").unique()
 
     # セットの構築
-    # Polarsのis_inは非常に高速なので、集合演算を使わずそのまま渡せます
+    # Polarsのis_inは非常に高速なので,集合演算を使わずそのまま渡せます
     list_A = pl.concat([rich_users, medium_users, sparse_users])
     list_B = pl.concat([rich_users, medium_users])
     list_C = rich_users

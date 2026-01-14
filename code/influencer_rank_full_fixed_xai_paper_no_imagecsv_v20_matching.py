@@ -2257,7 +2257,7 @@ def run_maskopt_for_all_months(
 
     追加したこと:
     - 各 explain_pos で「グラフ上に target の非self out edge があるか」を事前に数える
-    - df_edge が空になった月だけ、(option) use_subgraph=False で再実行して原因切り分け
+    - df_edge が空になった月だけ,(option) use_subgraph=False で再実行して原因切り分け
     """
     model.eval()
 
@@ -2288,13 +2288,13 @@ def run_maskopt_for_all_months(
             "use_subgraph": bool(use_subgraph),
         })
 
-        # グラフに target がそもそもいないなら、MaskOpt以前の問題
+        # グラフに target がそもそもいないなら,MaskOpt以前の問題
         if not has_u:
             print(f"[WARN] target_node {target_node_global_idx} is NOT in node-set at {label}. "
                   f"-> graph construction / active-node filtering issue.")
             continue
 
-        # グラフ上で非self out が 0 なら、「incidentが落ちてる」か「edge_indexがincidentを持ってない」問題
+        # グラフ上で非self out が 0 なら,「incidentが落ちてる」か「edge_indexがincidentを持ってない」問題
         if n_out == 0:
             print(f"[WARN] graph has ZERO non-self out edges at {label}. "
                   f"-> either this month really has no incident edges for this user in graph, "
@@ -2833,7 +2833,7 @@ def compute_two_ndcgs(df, k_list=(1, 10, 50, 100, 200)):
     pred = df["pred_score"].to_numpy(dtype=float)
 
     # (A) continuous NDCG: relevance = engagement rate (linear gain 推奨)
-    # 連続値に exp2 を使うと極端に差が増幅されるので、まずは linear が扱いやすい
+    # 連続値に exp2 を使うと極端に差が増幅されるので,まずは linear が扱いやすい
     out = {}
     for k in k_list:
         out[f"ndcg_cont_at_{k}"] = ndcg_at_k(true_e, pred, k=k, gain="linear")
@@ -3240,7 +3240,7 @@ def run_experiment(params, graphs_data, target_node_idx, experiment_id=None):
 
     def compute_rolling_predictions(model, seq_list, raw_list, baseline_score: float, device):
         """
-        rolling: month 0..t までを残し、t+1..T-1 を 0 パディングして予測
+        rolling: month 0..t までを残し,t+1..T-1 を 0 パディングして予測
         -> 月ごとに変化する予測スコアが得られる（整合性チェックに便利）
         """
         T = len(seq_list)
@@ -3273,7 +3273,7 @@ def run_experiment(params, graphs_data, target_node_idx, experiment_id=None):
         """
         各月 t について「その月の feature_idx を baseline 値に置換」したときの
         delta_t = pred_orig - pred_replaced_t を返す（attribution時系列）。
-        ※ 重要：グラフ埋め込みを再計算しつつ、変化する月だけ差し替えるので高速。
+        ※ 重要：グラフ埋め込みを再計算しつつ,変化する月だけ差し替えるので高速。
         """
         T = len(input_graphs)
         feature_idx = int(feature_idx)

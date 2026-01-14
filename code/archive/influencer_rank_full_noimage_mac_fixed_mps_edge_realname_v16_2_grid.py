@@ -1732,7 +1732,7 @@ def run_experiment(params, graphs_data, experiment_id=None):
         if params.get("XAI_ONLY", False):
             local_pth_path = params.get("MODEL_PATH", None)
             
-            # 【変更点】ローカルパスが指定されていれば、それを直接読む
+            # 【変更点】ローカルパスが指定されていれば,それを直接読む
             if local_pth_path and os.path.exists(local_pth_path):
                 print(f"[XAI_ONLY] Loading local model file directly: {local_pth_path}")
                 state = torch.load(local_pth_path, map_location=device)

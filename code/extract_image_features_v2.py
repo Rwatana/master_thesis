@@ -18,7 +18,7 @@ BATCH_SIZE = 512
 # CPU 96コアを有効活用 (前処理負荷が高いため多めに)
 NUM_WORKERS = 24  
 
-# メモリ保護のため、この枚数ごとにCSVへ書き出してメモリを解放する
+# メモリ保護のため,この枚数ごとにCSVへ書き出してメモリを解放する
 WRITE_CHUNK_SIZE = 5000 
 
 # --- デバイス設定 ---
@@ -26,7 +26,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # --- ヘルパー関数: 処理済みチェック ---
 def get_processed_post_ids(csv_path):
-    """中断しても続きから再開できるように、既にCSVにあるIDを取得する"""
+    """中断しても続きから再開できるように,既にCSVにあるIDを取得する"""
     if not os.path.exists(csv_path):
         return set()
     try:
@@ -40,7 +40,7 @@ def get_processed_post_ids(csv_path):
 def calculate_pixel_stats(image_pil):
     """
     画像の輝度・色彩度・色温度を計算する。
-    Datasetの__getitem__内で呼ばれ、マルチプロセス(num_workers)で並列実行される。
+    Datasetの__getitem__内で呼ばれ,マルチプロセス(num_workers)で並列実行される。
     """
     # 1. 輝度 (Brightness)
     gray_img = image_pil.convert('L')
@@ -163,7 +163,7 @@ def collate_fn(batch):
     return images, metadata
 
 def flush_results_to_csv(results_buffer, output_file):
-    """バッファをCSVに追記し、メモリを解放する"""
+    """バッファをCSVに追記し,メモリを解放する"""
     if not results_buffer:
         return []
     

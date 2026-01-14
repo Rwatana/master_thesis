@@ -60,7 +60,7 @@ def prepare_graph_data():
         return None, None, None, None
     # --- ▲▲▲ 修正点 ▲▲▲
 
-    # --- (以降のファイル読み込みは変更なし、ダミーデータ生成ロジックは簡潔化) ---
+    # --- (以降のファイル読み込みは変更なし,ダミーデータ生成ロジックは簡潔化) ---
     try:
         df_posts = pd.read_csv(PREPROCESSED_FILE, parse_dates=['datetime'], low_memory=False)
         df_hashtags = pd.read_csv(HASHTAGS_FILE, header=0, low_memory=False)

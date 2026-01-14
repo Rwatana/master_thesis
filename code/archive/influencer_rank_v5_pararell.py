@@ -101,7 +101,7 @@ def prepare_graph_data(end_date, num_months=12, metric_numerator='likes', metric
     
     feature_columns = list(static_features.drop('username', axis=1).columns) + list(dynamic_features.drop(['username', 'month'], axis=1).columns) + ['feedback_rate']
     
-    # ✅ グローバル変数を削除し、ローカル変数として定義
+    # ✅ グローバル変数を削除し,ローカル変数として定義
     feature_dim = len(feature_columns)
     print(f"Total raw feature dimension: {feature_dim}")
 
@@ -523,7 +523,7 @@ def run_experiment(run_args):
         # 2. このプロセス固有のモデル保存パスを決定
         model_save_path = os.path.join(MODEL_DIR, f'model_run_{run_id}_seed_{seed}.pth')
         
-        # 3. 学習を実行し、学習時
+        # 3. 学習を実行し,学習時
         # の特徴量次元数を取得
         trained_feature_dim = train_and_save_model(model_save_path)
         
@@ -560,7 +560,7 @@ if __name__ == '__main__':
     START_SEED = 42      # 最初のシード値 (42, 43, 44... と増えていきます)
     
     # 警告: この値を大きくしすぎないでください！
-    # PCのCPUコア数 / 2、またはGPUメモリが許す数 (例: 2, 4, 8) を推奨します。
+    # PCのCPUコア数 / 2,またはGPUメモリが許す数 (例: 2, 4, 8) を推奨します。
     # 100に設定するとシステムがクラッシュします。
     NUM_PARALLEL_WORKERS = 4 
     
@@ -578,7 +578,7 @@ if __name__ == '__main__':
     jobs = [(i, START_SEED + i) for i in range(NUM_TOTAL_RUNS)]
 
     # 3. プロセスプールを作成して並列実行
-    # `imap` を使うと、タスクが完了した順に結果を処理できます
+    # `imap` を使うと,タスクが完了した順に結果を処理できます
     # `tqdm` で全体の進捗を表示
     all_results = []
     

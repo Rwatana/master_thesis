@@ -117,11 +117,11 @@ famous_mentions_in_window = df_mentions[
 ]
 
 if not famous_mentions_in_window.empty:
-    st.success(f"**要因候補**: 分析期間中に、以下の有名インフルエンサーから **{len(famous_mentions_in_window)}** 回のメンションがありました。これが成長のきっかけになった可能性があります。")
+    st.success(f"**要因候補**: 分析期間中に,以下の有名インフルエンサーから **{len(famous_mentions_in_window)}** 回のメンションがありました。これが成長のきっかけになった可能性があります。")
     merged_mentions = pd.merge(famous_mentions_in_window, df_influencers[['Username', '#Followers']], left_on='username', right_on='Username', how='left')
     st.dataframe(merged_mentions[['datetime', 'username', '#Followers']].rename(columns={'username': 'メンションした有名人', '#Followers': 'フォロワー数'}))
 else:
-    st.info("分析期間中に、データセット内の有名人からメンションされた形跡はありませんでした。")
+    st.info("分析期間中に,データセット内の有名人からメンションされた形跡はありませんでした。")
 
 
 # --- 2. 内部要因の分析 ---
@@ -147,10 +147,10 @@ if new_hashtags_set:
             pioneering_hashtags.append({'hashtag': ht, 'past_global_usage': past_usage})
     
     if pioneering_hashtags:
-        st.success(f"**要因候補**: 分析期間中に、以下の**新しい/ニッチなハッシュタグ**の使用を開始しました。これがトレンドを先取りし、成長に繋がった可能性があります。")
+        st.success(f"**要因候補**: 分析期間中に,以下の**新しい/ニッチなハッシュタグ**の使用を開始しました。これがトレンドを先取りし,成長に繋がった可能性があります。")
         df_pioneer = pd.DataFrame(pioneering_hashtags).sort_values('past_global_usage')
         st.dataframe(df_pioneer.rename(columns={'hashtag': 'ハッシュタグ', 'past_global_usage': '過去の全体での使用回数'}))
     else:
-        st.info("分析期間中に、新しいトレンドを先取りしたと見られるハッシュタグの使用はありませんでした。")
+        st.info("分析期間中に,新しいトレンドを先取りしたと見られるハッシュタグの使用はありませんでした。")
 else:
-    st.info("分析期間中に、新しいハッシュタグの使用はありませんでした。")
+    st.info("分析期間中に,新しいハッシュタグの使用はありませんでした。")

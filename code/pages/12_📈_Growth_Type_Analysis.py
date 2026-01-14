@@ -33,7 +33,7 @@ def load_influencers_data(filepath):
 # --- 分析関数 1: いいね数の伸び率で「成長タイプ」を分類 ---
 @st.cache_data
 def analyze_growth_type(_df_posts):
-    """ユーザー毎の「いいね数」の成長率を計算し、成長タイプを分類する"""
+    """ユーザー毎の「いいね数」の成長率を計算し,成長タイプを分類する"""
     user_features = []
     for user in _df_posts['username'].unique():
         user_df = _df_posts[_df_posts['username'] == user]
@@ -104,7 +104,7 @@ st.title("📊 総合インフルエンサー分析")
 st.info("""
 インフルエンサーを以下の2つの軸で総合的に評価します。
 - **インフルエンサー階層**: 現在のフォロワー数に基づいた影響力の規模
-- **成長タイプ**: いいね数の伸び率に基づいた、将来のポテンシャル
+- **成長タイプ**: いいね数の伸び率に基づいた,将来のポテンシャル
 """)
 
 df_posts = load_posts_data('output_beauty_category.csv')
@@ -115,7 +115,7 @@ if df_posts is not None and df_influencers is not None:
     df_growth_analysis = analyze_growth_type(df_posts)
     df_tier_analysis = analyze_influencer_tier(df_influencers)
     
-    # 修正なしでも、これで正常に動作する
+    # 修正なしでも,これで正常に動作する
     df_combined = df_tier_analysis.join(df_growth_analysis, how='left')
     
     st.markdown("---")

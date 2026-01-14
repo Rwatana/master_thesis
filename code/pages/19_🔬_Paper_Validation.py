@@ -29,7 +29,7 @@ def load_influencer_data(filepath):
 
 # --- UI描画 ---
 st.title("🔬 論文検証『Less is more』(van der Harst et al., 2024)")
-st.info("論文で提示された主要な仮説が、このデータセットでも成立するかを検証します。")
+st.info("論文で提示された主要な仮説が,このデータセットでも成立するかを検証します。")
 
 # --- データの準備 ---
 # ▼▼▼ 修正点: 読み込み部分をシンプル化 ▼▼▼
@@ -56,7 +56,7 @@ tab1, tab2, tab3 = st.tabs(["仮説1: マイクロインフルエンサーの効
 # (以降のタブ内のコードは変更なし)
 with tab1:
     st.header("仮説1: マイクロインフルエンサーはフォロワーあたりのエンゲージメントが高いか？")
-    st.markdown("**論文の発見**: マイクロインフルエンサーは「お気に入り（いいね）」は高いが、「リツイート（共有）」は低い。")
+    st.markdown("**論文の発見**: マイクロインフルエンサーは「お気に入り（いいね）」は高いが,「リツイート（共有）」は低い。")
     
     df_analysis['engagement_per_follower'] = df_analysis['engagement'] / df_analysis['#Followers'].replace(0, np.nan)
     
@@ -69,7 +69,7 @@ with tab1:
     median_engagement = df_analysis.groupby('influencer_type')['engagement_per_follower'].median()
     st.write("フォロワーあたりエンゲージメントの中央値:")
     st.dataframe(median_engagement)
-    st.success("**結論**: 論文と同様に、マイクロインフルエンサーがフォロワーあたりのエンゲージメントが最も高い傾向が見られます。仮説は支持されました。")
+    st.success("**結論**: 論文と同様に,マイクロインフルエンサーがフォロワーあたりのエンゲージメントが最も高い傾向が見られます。仮説は支持されました。")
 
 with tab2:
     st.header("仮説3: 写真に人物が登場するとエンゲージメントは高まるか？")
@@ -77,7 +77,7 @@ with tab2:
     - **仮説3a**: 写真に人物が登場するとエンゲージメントは高まる。
     - **仮説3b**: その効果はフォロワーが少ない（マイクロ）ほど強い。
     
-    ここでは、投稿に**ユーザータグが付いているか**を「人物が登場しているか」の代理指標として使用します。
+    ここでは,投稿に**ユーザータグが付いているか**を「人物が登場しているか」の代理指標として使用します。
     """)
     
     df_analysis['has_person_proxy'] = df_analysis['tag_count'] > 0
@@ -91,7 +91,7 @@ with tab2:
     avg_engagement_person = df_analysis.groupby('has_person_proxy')['engagement'].mean()
     st.write("平均エンゲージメント:")
     st.dataframe(avg_engagement_person)
-    st.success("**結論 (3a)**: このデータセットでは、人物が登場する（タグがある）方がエンゲージメントが**低い**傾向にあり、論文の仮説とは逆の結果となりました。")
+    st.success("**結論 (3a)**: このデータセットでは,人物が登場する（タグがある）方がエンゲージメントが**低い**傾向にあり,論文の仮説とは逆の結果となりました。")
 
     st.subheader("仮説3bの検証")
     fig3 = px.scatter(df_analysis, x='#Followers', y='engagement', color='has_person_proxy', 
@@ -99,8 +99,8 @@ with tab2:
                       title='フォロワー数とエンゲージメントの関係（人物登場の有無別）',
                       labels={'#Followers': 'フォロワー数', 'engagement': 'エンゲージメント'})
     st.plotly_chart(fig3, use_container_width=True)
-    st.info("2本のトレンドラインの傾きに注目してください。もしマイクロインフルエンサー（左側）で青線(True)が赤線(False)より上にあり、右側で逆転するなら仮説は支持されます。")
-    st.warning("**結論 (3b)**: グラフ全体で赤線（人物なし）が青線（人物あり）を上回っており、フォロワー数が少ない領域で特に効果が強いという仮説は支持されませんでした。")
+    st.info("2本のトレンドラインの傾きに注目してください。もしマイクロインフルエンサー（左側）で青線(True)が赤線(False)より上にあり,右側で逆転するなら仮説は支持されます。")
+    st.warning("**結論 (3b)**: グラフ全体で赤線（人物なし）が青線（人物あり）を上回っており,フォロワー数が少ない領域で特に効果が強いという仮説は支持されませんでした。")
 
 with tab3:
     st.header("仮説4: ネガティブな感情のテキストはエンゲージメントを高めるか？")
@@ -123,6 +123,6 @@ with tab3:
 
     st.metric("p値（Negative vs Positive）", f"{p_value:.4f}")
     if p_value < 0.05 and neg_engagement.mean() > pos_engagement.mean():
-        st.success("**結論**: 統計的に有意な差が見られ、ネガティブな投稿の方がエンゲージメントが高い結果となりました。論文の仮説は支持されました。")
+        st.success("**結論**: 統計的に有意な差が見られ,ネガティブな投稿の方がエンゲージメントが高い結果となりました。論文の仮説は支持されました。")
     else:
-        st.warning("**結論**: 統計的に有意な差は見られず、このデータセットでは論文の仮説は支持されませんでした。")
+        st.warning("**結論**: 統計的に有意な差は見られず,このデータセットでは論文の仮説は支持されませんでした。")

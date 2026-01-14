@@ -51,7 +51,7 @@ def process_file(filename):
 
 def create_aggregated_post_data_parallel():
     """
-    並列処理を使って、全ての.infoファイルから集計CSVを作成する。
+    並列処理を使って,全ての.infoファイルから集計CSVを作成する。
     """
     output_filename = 'preprocessed_posts_with_metadata_data_check.csv'
     

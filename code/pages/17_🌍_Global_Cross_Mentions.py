@@ -27,7 +27,7 @@ def load_influencer_data(filepath):
 @st.cache_data
 def calculate_all_cross_mentions(df_mentions, df_influencers):
     """
-    全ての異カテゴリ間メンションを抽出し、詳細ペアと個人サマリーの2つのテーブルを作成する。
+    全ての異カテゴリ間メンションを抽出し,詳細ペアと個人サマリーの2つのテーブルを作成する。
     """
     if df_mentions is None or df_influencers is None:
         return pd.DataFrame(), pd.DataFrame()
@@ -66,7 +66,7 @@ def calculate_all_cross_mentions(df_mentions, df_influencers):
 
 # --- UI描画 ---
 st.title("🌍 全体 越境メンション分析")
-st.info("各インフルエンサーが、どのカテゴリのユーザーから、どれだけ多くの注目（メンション）を集めているかを分析します。")
+st.info("各インフルエンサーが,どのカテゴリのユーザーから,どれだけ多くの注目（メンション）を集めているかを分析します。")
 
 # --- データの読み込み ---
 df_mentions = load_mention_data('output_mentions_all_parallel.csv')
@@ -90,7 +90,7 @@ selected_user = st.sidebar.selectbox(
     index=0 # デフォルトは「全てのユーザー」
 )
 
-# ユーザーが選択された場合、データフレームをフィルタリング
+# ユーザーが選択された場合,データフレームをフィルタリング
 if selected_user != '（全てのユーザー）':
     pair_summary_df = pair_summary_df[pair_summary_df['メンションされたユーザー'] == selected_user]
     personal_summary_df = personal_summary_df[personal_summary_df['メンションされたユーザー'] == selected_user]
@@ -116,7 +116,7 @@ personal_summary_df = personal_summary_df[personal_summary_df['Category'].isin(s
 
 # ▼▼▼ 新しいセクションを追加 ▼▼▼
 st.header("サマリー：誰が分野を超えて注目されているか")
-st.write("各ユーザーが、異分野から受けた総メンション数、ユニークユーザー数、カテゴリ数の集計です。")
+st.write("各ユーザーが,異分野から受けた総メンション数,ユニークユーザー数,カテゴリ数の集計です。")
 st.dataframe(personal_summary_df[['メンションされたユーザー', 'Category', '異分野からの総メンション数', '異分野のユニークユーザー数', '異分野のカテゴリ数']], use_container_width=True)
 # ▲▲▲ 新しいセクション ▲▲▲
 

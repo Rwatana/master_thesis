@@ -169,7 +169,7 @@ def load_evidence_table(evid_path: str):
 def load_posts_table(posts_path: str):
     """
     posts は「2017年だけ」に絞って返す（母数を2017年に固定）
-    ※ ただし順位は「他ユーザーを混ぜない」要望なので、ここでは rank を作らない
+    ※ ただし順位は「他ユーザーを混ぜない」要望なので,ここでは rank を作らない
     """
     if not posts_path or (not os.path.exists(posts_path)):
         return None
@@ -230,7 +230,7 @@ def _scale_width(w, w_min=0.5, w_max=6.0):
 @st.cache_data
 def build_user_year_rank_map(df_posts: pd.DataFrame, username: str, year: int, metric_col: str):
     """
-    選択ユーザーの year 全投稿で順位を作って、post_id -> year_rank を返す
+    選択ユーザーの year 全投稿で順位を作って,post_id -> year_rank を返す
     """
     d = df_posts[
         (df_posts["username"].astype(str) == str(username)) &
@@ -508,7 +508,7 @@ with colB:
         else:
             st.info("edge candidates が空です。")
     else:
-        st.warning("edge_importance.csv に edge_type / neighbor_name / importance が揃っていないため、edge選択ができません。")
+        st.warning("edge_importance.csv に edge_type / neighbor_name / importance が揃っていないため,edge選択ができません。")
 
     st.markdown("---")
     st.subheader("Prediction (optional)")
@@ -703,7 +703,7 @@ else:
     if cap_col is None:
         st.info("posts に caption/text が無いので edge 含有判定ができません。")
     elif (edge_type == "") or (neighbor_name == ""):
-        st.info("edge が選べていないので、(6) は表示できません。")
+        st.info("edge が選べていないので,(6) は表示できません。")
     else:
         needle = str(neighbor_name)
         et = str(edge_type).lower()
@@ -757,7 +757,7 @@ else:
     if cap_col_y is None:
         st.info("posts に caption/text が無いので edge 含有判定ができません。")
     elif (edge_type == "") or (neighbor_name == ""):
-        st.info("edge が選べていないので、(7) は表示できません。")
+        st.info("edge が選べていないので,(7) は表示できません。")
     else:
         needle = str(neighbor_name)
         et = str(edge_type).lower()

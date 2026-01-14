@@ -4,7 +4,7 @@
 subgraph_repro_artifacts.py
 
 目的:
-  pred_full vs pred_sub の "サブグラフ近似の再現性チェック" を、論文/発表にそのまま貼れる形で
+  pred_full vs pred_sub の "サブグラフ近似の再現性チェック" を,論文/発表にそのまま貼れる形で
   artifact(CSV/PNG/ログ)として出力するためのユーティリティ。
 
 出力 (最低限セット):
@@ -19,14 +19,14 @@ subgraph_repro_artifacts.py
   3) mapping整合性ログ（subset_ok / x_diff_inf をCSVに含める）
 
 追加（target_nodesが複数のとき）:
-  - pred_full vs pred_sub scatter（hops固定、posごとPNG）
+  - pred_full vs pred_sub scatter（hops固定,posごとPNG）
   - 相関(Pearson/Spearman)とTopK overlap（CSVに追記 + JSON summary）
 
 想定:
   - graphs_full: List[torch_geometric.data.Data]  (Tヶ月分)
   - あなたのモデル推論関数 predict_fn(model, graphs, target_node, pos, device=...) が存在する
     ※ここで pos は「説明したい月（または推論対象の月）」のindex（0..T-1）。
-      あなたの実装に合わせて、predict_fn 内で使ってください。
+      あなたの実装に合わせて,predict_fn 内で使ってください。
 
 使い方（あなたの既存 FULL SCRIPT / xai系 script に組み込む）:
 
@@ -556,7 +556,7 @@ def run_subgraph_repro_check(
 
 def example_predict_fn_template(model: Any, graphs: Sequence[Data], target_node: int, pos: int, device: str) -> float:
     """
-    あなたの実装に合わせて、ここを "既存推論" に置換してください。
+    あなたの実装に合わせて,ここを "既存推論" に置換してください。
 
     重要:
       - model.eval() になっていること

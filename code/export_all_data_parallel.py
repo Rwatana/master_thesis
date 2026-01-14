@@ -10,7 +10,7 @@ INFO_DIRECTORY = '../influencer_info_v2/info/'
 
 def process_file(filename):
     """
-    単一の.infoファイルを処理して、ハッシュタグとメンションのリストを返すワーカー関数。
+    単一の.infoファイルを処理して,ハッシュタグとメンションのリストを返すワーカー関数。
     """
     source_user = filename.split('-')[0]
     hashtags = []
@@ -64,14 +64,14 @@ if __name__ == "__main__":
         print("対象ファイル (.info) が見つかりません。")
         exit()
 
-    # CPUコア数を取得し、プロセスプールを作成
+    # CPUコア数を取得し,プロセスプールを作成
     num_processes = cpu_count()
     print(f"{num_processes}個のCPUコアを使用して処理します。")
 
     hashtags_results = []
     mentions_results = []
 
-    # Poolを使って並列処理を実行し、tqdmで進捗を表示
+    # Poolを使って並列処理を実行し,tqdmで進捗を表示
     with Pool(processes=num_processes) as pool:
         # imapを使用することで進捗バーを正確に表示
         results = list(tqdm(pool.imap(process_file, all_files), total=len(all_files), desc="全投稿データを処理中"))

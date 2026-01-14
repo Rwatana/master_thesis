@@ -16,7 +16,7 @@ OUTPUT_CSV_FILE = 'output_all_categories.csv'
 # --- 関数定義 ---
 
 def load_influencer_data(filepath):
-    """influencers.txtを読み込み、DataFrameを返す。"""
+    """influencers.txtを読み込み,DataFrameを返す。"""
     try:
         df = pd.read_csv(filepath, sep='\t', skiprows=[1])
         return df
@@ -46,7 +46,7 @@ def process_single_influencer(username):
         return []
 
 def load_all_posts_data_parallel(influencer_list):
-    """ThreadPoolExecutorを使って、投稿データを並列で読み込む。"""
+    """ThreadPoolExecutorを使って,投稿データを並列で読み込む。"""
     all_posts = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=None) as executor:
         results = list(tqdm(executor.map(process_single_influencer, influencer_list), total=len(influencer_list), desc="インフルエンサーを処理中"))

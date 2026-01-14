@@ -150,5 +150,5 @@ if st.session_state.run_analysis:
         st.plotly_chart(fig, use_container_width=True)
 
 else:
-    st.info("👈 サイドバーから分析したいカテゴリを選択し、「分析を開始」ボタンを押してください。")
+    st.info("👈 サイドバーから分析したいカテゴリを選択し,「分析を開始」ボタンを押してください。")
 

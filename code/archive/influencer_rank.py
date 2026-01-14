@@ -19,7 +19,7 @@
 # # --- データ準備関数 ---
 # def prepare_graph_data():
 #     """
-#     各種CSVからデータを読み込み、月ごとのグラフデータセットを構築する。
+#     各種CSVからデータを読み込み,月ごとのグラフデータセットを構築する。
 #     """
 #     print("Loading data files...")
 #     df_influencers = pd.read_csv(INFLUENCERS_FILE, sep='\t', skiprows=[1], dtype=str)
@@ -35,7 +35,7 @@
 #     df_hashtags.dropna(subset=['datetime'], inplace=True)
 #     df_mentions.dropna(subset=['datetime'], inplace=True)
 
-#     # 全てのノード（ユーザー、ハッシュタグなど）をリストアップし、IDを割り振る
+#     # 全てのノード（ユーザー,ハッシュタグなど）をリストアップし,IDを割り振る
 #     df_influencers.columns = ['Username', 'Category', 'followers', 'followees', 'posts']
     
 #     all_users = set(df_influencers['Username'].astype(str))
@@ -123,7 +123,7 @@ MODEL_SAVE_PATH = 'influencer_rank_model.pth'
 # --- データ準備関数 ---
 def prepare_graph_data():
     """
-    各種CSVからデータを読み込み、月ごとのグラフデータセットを構築する。
+    各種CSVからデータを読み込み,月ごとのグラフデータセットを構築する。
     """
     print("Loading data files...")
     df_influencers = pd.read_csv(INFLUENCERS_FILE, sep='\t', skiprows=[1], dtype=str)
