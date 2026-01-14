@@ -1,10 +1,13 @@
 \chapter{実験}
 
 \section{実験の目的}
-提案手法としてマスクを使用したXAIを導入しているが，その説明が妥当な振る舞いをするかを検証する必要がある．
-本研究では，先行研究をフルスクラッチで実装し学習,推論したものに対して，最適化ベースのマスク学習により得られる説明が妥当な振る舞いをするかを検証する．
-ここで妥当性とは，重要とされた要素（特徴量・エッジ）を操作すると予測が想定通りに変化すること，および説明が少数要素にまとまり月次で比較可能な形で提示できることを指す．
-また,その説明が実データに対して有用であるかも検証する．
+% ===== 6.1 実験の目的（全文差し替え） =====
+本章の目的は，提案手法の「予測性能」と「説明の妥当性」を，研究質問（RQ）に沿って順に検証することである．
+まず RQ1 として，InfluencerRank 型モデルが追試設定でも妥当なランキング性能を示すことを確認する（実験1.1）．
+次に RQ2 として，マスク最適化で得られた重要度（importance）が，入力要素の置換・除去によるスコア変化（score impact）と整合するかを検証する（実験1.3, 1.5）．
+さらに RQ3 として，時刻選択や月次比較が実際に機能しているか（重要月の特定・月次での説明の揺れ）を確認する（実験1.2, 1.6）．
+最後に RQ4 として，重要要素が「多くのユーザーに共通して効く」のか「特定ユーザーに局所的に効く」のかを，集約ヒートマップにより可視化する（実験1.6）．
+加えて，説明がモデルの学習信号に依存していることを確認するため，ランダム化テスト（sanity check）も行う（実験1.7）．
 
 本章の目的は以下の2点である．
 \begin{enumerate}
@@ -85,14 +88,6 @@ y_u^t = \frac{\mathrm{likes}_u^t + \mathrm{comments}_u^t}{\mathrm{followers}_u^t
 新たに順位としての相関を示すpearson相関係数, spearman相関係数も追加で評価指標として使用する。
 
 \subsection{結果}
-予測スコアとTrueスコアの関係を図\ref{fig:exp1_model_prediction}に示す。
-
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=0.95\linewidth]{figures/exp/exp1-model-prediction.png}
-  \caption{実験1の結果（1月）：ノード特徴量とエッジのimportanceの上位プロット}
-  \label{fig:exp1_model_prediction}
-\end{figure}
 
 表\ref{tab:model_prediction_comparison_ndcg}に各手法の予測精度を示す。
 % 表を作成して,各手法の予測精度を示す(NDCG)
@@ -110,11 +105,11 @@ y_u^t = \frac{\mathrm{likes}_u^t + \mathrm{comments}_u^t}{\mathrm{followers}_u^t
     GCRN & 0.44 & 0.37 & 0.33 & 0.29 & 0.26 \\
     DeepInf & 0.43 & 0.36 & 0.32 & 0.28 & 0.25 \\
     \bottomrule
-  \end{tabular}
-  \label{tab:model_prediction_comparison_ndcg}
+  \end{tabular}\label{tab:model_prediction_comparison_ndcg}
 \end{table} 
 
-追加で順位としての相関を示すpearson相関係数, spearman相関係数も含めた予測精度を表\ref{tab:model_prediction_comparison_rbp}に示す。
+
+論文では、使用されていないが、追加で順位としての相関を示すpearson相関係数, spearman相関係数も含めた予測精度を表\ref{tab:model_prediction_comparison_rbp}に示す。
 % 表を作成して書く手法の予測精度を示す(RBP  ,Pearson, Spearman)
 \begin{table}[htbp]
   \centering
@@ -130,9 +125,18 @@ y_u^t = \frac{\mathrm{likes}_u^t + \mathrm{comments}_u^t}{\mathrm{followers}_u^t
     GCRN & 0.31 & 0.64 & 0.59 \\
     DeepInf & 0.30 & 0.63 & 0.58 \\
     \bottomrule
-  \end{tabular}
-  \label{tab:model_prediction_comparison_rbp}
+  \end{tabular}\label{tab:model_prediction_comparison_rbp}
 \end{table}
+
+予測スコアとTrueスコアの関係を図\ref{fig:exp1_model_prediction}に示す。
+論文の実装とは少し学習を変えているため,予測精度が異なるが先行研究のモデルよりも高い予測精度を示しているため,学習済みモデルが妥当な予測を行っていることが確認できた。
+
+予測スコアとTrueスコアの関係を示すため散布図を作成した。
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.9\linewidth]{figures/exp/exp1-model-prediction.png}
+  \caption{実験1の結果（1月）：ノード特徴量とエッジのimportanceの上位プロット}\label{fig:exp1_model_prediction}
+\end{figure}
 
 \section{実験1.2 重要な月の特定}
 \subsection{目的}
@@ -240,13 +244,20 @@ User diana.stef の可視化結果を示す
 \subsection{結果}
 エッジの重要度は以下のように得られる。
 % グラフのエッジ重要度
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=0.95\linewidth]{figures/exp/exp1-ego-vis.png}
-  \caption{実験1の結果（1月）：importanceと実投稿数の関係の可視化}
-  \label{fig:exp1_4_jan}
+\begin{figure}[h]
+\centering
+\begin{minipage}[b]{0.49\columnwidth}
+    \centering
+    \includegraphics[width=0.9\columnwidth]{figures/exp/exp1-ego-vis.png}
+    \caption{左}\label{fig:ego-vis-jan}
+\end{minipage}
+\begin{minipage}[b]{0.49\columnwidth}
+    \centering
+    \includegraphics[width=0.9\columnwidth]{figures/exp/exp1-ego-vis2.png}
+    \caption{右}\label{fig:ego-vis2-mar}
+\end{minipage}
 \end{figure}
-
+1月、3月のエッジ重要度可視化結果を図\ref{fig:ego-vis-jan},図\ref{fig:ego-vis2-mar}に示す。
 
 また,その投稿の重要度が一番高いもののを含んだ投稿は以下のような表になる。
 
@@ -324,9 +335,20 @@ User diana.stef の可視化結果を示す
 
 
 \subsection{結果}
-ヒートマップの可視化結果を図\ref{fig:exp1_6_heatmap}に示す．
-本図より，特定の特徴量がインフルエンサー全体で共通して重要であるのか，
-それとも特定のインフルエンサーグループのみで重要であるのかを確認できる．
+% ===== 6.9.3 結果（全文差し替えテンプレ） =====
+図Xに，上位Nユーザーに対する重要度（importance）の集約ヒートマップを示す．
+観測された傾向は以下の通りである．
+
+(1) 汎用的パターン：
+多くのユーザーで一貫して高い重要度を示す特徴（例：投稿頻度・投稿間隔に関する統計量）が確認された．これらは「全体として効きやすい要因」であり，青田買い意思決定における一般則として解釈可能である．
+
+(2) 局所的パターン：
+一部ユーザー群でのみ高重要度を示す特徴（例：特定カテゴリのハッシュタグ群，特定近傍とのメンション関係）が確認された．これは，成長要因がユーザーの戦略・属性に依存して分岐する可能性を示唆する．
+
+(3) 月次変動：
+重要度パターンは月によって変化し，特定月にのみ顕著となる要素が存在した．これは，Temporal Attention により「効く月」が強調される設計と整合的であり，月次比較の必要性を支持する．
+
+以上より，本手法は「全体に共通する成長要因」と「個別ユーザーに局所的な成長要因」を区別して提示できる可能性がある．ただし，重要度は最適化の多解性・正則化設定に依存し得るため，次節以降では score impact や sanity check と併用して信頼性を補強する．
 
 % \begin{figure}[htbp]
 %   \centering

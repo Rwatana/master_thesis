@@ -66,14 +66,14 @@ GNNを適用してノード表現を得る。
 InfluencerRank では，各時点グラフをGNNでエンコードして得たノード表現を時系列モデルへ入力する \cite{Kim2023InfluencerRank}。
 記号として，時点 $t$ のGNN出力（各ノードの埋め込み）を $R_t$ と書く。
 
-\subsection{時系列統合: GRUと時間注意機構}
+\subsection{時系列統合: LSTMと時間注意機構}
 InfluencerRank は，複数時点にわたるノード表現列 $\{R_{t-T+1},\dots,R_t\}$ を再帰モデルで統合し，将来の影響力を推定する \cite{Kim2023InfluencerRank}。
-原論文では，時系列統合にゲート付き再帰ユニット（GRU）を採用し，さらに時間注意機構により重要な時点を強調する構成を採る。
+原論文では，時系列統合にゲート付き再帰ユニット（LSTM）を採用し，さらに時間注意機構により重要な時点を強調する構成を採る。
 直観的には，バズやコラボなどが生じた特定月が将来の影響力に強く影響するため，全時点を等価に扱うのではなく重み付けして集約する。
 
-具体的には，各時点の隠れ状態を $H_t$ とし，GRUにより
+具体的には，各時点の隠れ状態を $H_t$ とし，LSTMにより
 \[
-H_t = \mathrm{GRU}(R_t, H_{t-1})
+H_t = \mathrm{LSTM}(R_t, H_{t-1})
 \]
 で更新する。
 続いて時間注意機構により，各時点の重要度 $\alpha_t$ を推定し，
@@ -84,7 +84,7 @@ C = \sum_t \alpha_t H_t
 のように重み付き和 $C$ を得る（$\eta_t$ は $H_t$ から計算されるスコア）\cite{Kim2023InfluencerRank}。
 最後に，全結合層（MLP）により将来スコアを出力し，このスコアに基づいてインフルエンサーをランキングする。
 
-なお，原論文ではGRUとLSTMの比較も行われ，性能差が大きくないことを報告している \cite{Kim2023InfluencerRank}。
+なお，原論文ではLSTMとLSTMの比較も行われ，性能差が大きくないことを報告している \cite{Kim2023InfluencerRank}。
 本研究では，時系列統合モジュールの選択は実装上の設計として扱い，提案手法章で採用設定を明示する。
 
 \subsection{ランキング学習としての最適化}
@@ -120,14 +120,14 @@ GNNExplainer は，以下の2種類のマスクを学習する \cite{Ying2019GNN
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=0.55\linewidth]{figures/edge_mask.png}
+    \includegraphics[width=0.8\linewidth]{figures/edge_mask.png}
     \caption{GNNExplainerにおけるエッジマスクの概念図}
     \label{fig:gnnexplainer_edge_mask}
 \end{figure}
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=0.55\linewidth]{figures/node_mask.png}
+    \includegraphics[width=0.8\linewidth]{figures/node_mask.png}
     \caption{GNNExplainerにおける特徴マスクの概念図}
     \label{fig:gnnexplainer_node_mask}
 \end{figure}

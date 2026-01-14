@@ -77,8 +77,8 @@ Attention 重み $\alpha_{v,t}$ が得られる場合は，
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=0.85\linewidth]{figures/mask_optimization.png}
-    \caption{MaskOpt の概念図（予測を維持しつつ特徴量・エッジを疎に残すマスクを最適化する）}
+    \includegraphics[width=1\linewidth]{figures/mask_optimization.png}
+    \caption{MaskOpt の概念図（予測を維持しつつ特徴量・エッジを疎に残すマスクを最適化）}
     \label{fig:maskopt_concept}
 \end{figure}
 
@@ -87,6 +87,7 @@ Attention 重み $\alpha_{v,t}$ が得られる場合は，
 さらにエッジマスクは対象ノード $v$ に incident なエッジ集合 $\mathcal{I}_\tau$ のみに限定し，マスクパラメータ数を削減する。
 
 \paragraph{マスクと適用}
+
 特徴マスク $m_x\in(0,1)^F$，エッジマスク $m_e\in(0,1)^{|\mathcal{I}_\tau|}$ を導入し，時刻 $\tau$ にのみ適用する。
 
 特徴に関しては，対象ノード $v$ の行のみをゲートする（target-only）：
@@ -113,7 +114,7 @@ GCN は重み付きメッセージパッシングとして実装されるとし�
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=0.8\linewidth]{figures/gcn_concat.png}
+    \includegraphics[width=1\linewidth]{figures/gcn_concat.png}
     \caption{時点グラフに対するGNN表現の概念図（各層の出力を連結する実装例）}
     \label{fig:gcn_concat}
 \end{figure}
@@ -184,6 +185,11 @@ X^{(\setminus j)}_\tau[v,j]
 \end{align}
 と定義する。
 $\mathrm{Impact}_x(j)>0$ は「その特徴を潰すとスコアが下がる」ことを意味し，スコア増加に正寄与したと解釈する。
+% ===== 5.1.4 Impact定義の直後に追記（貼り付け可） =====
+なお，本研究での score impact は「入力要素を所定のベースラインへ置換したときの予測スコア差分」に基づく局所的な反実仮想量であり，介入可能性や交絡を制御した因果効果を意味しない．
+したがって，本研究で主張できるのは「このモデルの予測にとって，当該要素がどの方向に効いていると整合的か」という範囲に限られる．
+
+
 
 \paragraph{エッジの符号付き影響度}
 上位 incident 辺 $e=(v,u)$ について，時刻 $\tau$ の隣接を両方向まとめてドロップし，
