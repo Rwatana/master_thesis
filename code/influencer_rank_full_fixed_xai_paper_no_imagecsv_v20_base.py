@@ -2257,7 +2257,7 @@ def run_maskopt_for_all_months(
 
     追加したこと:
     - 各 explain_pos で「グラフ上に target の非self out edge があるか」を事前に数える
-    - df_edge が空になった月だけ,(option) use_subgraph=False で再実行して原因切り分け
+    - df_edge が空になった月だけ、(option) use_subgraph=False で再実行して原因切り分け
     """
     model.eval()
 
@@ -2288,13 +2288,13 @@ def run_maskopt_for_all_months(
             "use_subgraph": bool(use_subgraph),
         })
 
-        # グラフに target がそもそもいないなら,MaskOpt以前の問題
+        # グラフに target がそもそもいないなら、MaskOpt以前の問題
         if not has_u:
             print(f"[WARN] target_node {target_node_global_idx} is NOT in node-set at {label}. "
                   f"-> graph construction / active-node filtering issue.")
             continue
 
-        # グラフ上で非self out が 0 なら,「incidentが落ちてる」か「edge_indexがincidentを持ってない」問題
+        # グラフ上で非self out が 0 なら、「incidentが落ちてる」か「edge_indexがincidentを持ってない」問題
         if n_out == 0:
             print(f"[WARN] graph has ZERO non-self out edges at {label}. "
                   f"-> either this month really has no incident edges for this user in graph, "
@@ -2833,7 +2833,7 @@ def compute_two_ndcgs(df, k_list=(1, 10, 50, 100, 200)):
     pred = df["pred_score"].to_numpy(dtype=float)
 
     # (A) continuous NDCG: relevance = engagement rate (linear gain 推奨)
-    # 連続値に exp2 を使うと極端に差が増幅されるので,まずは linear が扱いやすい
+    # 連続値に exp2 を使うと極端に差が増幅されるので、まずは linear が扱いやすい
     out = {}
     for k in k_list:
         out[f"ndcg_cont_at_{k}"] = ndcg_at_k(true_e, pred, k=k, gain="linear")
@@ -3002,228 +3002,6 @@ def _apply_node_feature_mask_on_graph(g, target_node: int, masked_feats, mode="z
     g2.x = x
     return g2
 
-# def deletion_insertion_feature(
-#     model,
-#     input_graphs,        # list of T graphs
-#     target_node: int,
-#     baseline_score,      # torch [1] or scalar
-#     feature_order,       # list[int] in ORIGINAL feature space (g.x dim)
-#     mode="deletion",
-#     random_trials=30,
-#     device="cpu"
-# ):
-#     model.eval()
-
-#     F = int(input_graphs[0].x.shape[1])
-#     feature_order = [int(f) for f in feature_order if 0 <= int(f) < F]
-#     feature_order = list(dict.fromkeys(feature_order))
-#     rest = [i for i in range(F) if i not in set(feature_order)]
-#     full_order = feature_order + rest
-
-#     k_list = list(range(0, F + 1))
-
-#     def predict(graphs):
-#         with torch.no_grad():
-#             seq_emb, raw_emb = [], []
-#             for g in graphs:
-#                 g = g.to(device)
-#                 p_x = model.projection_layer(g.x)                 # [N, P]
-#                 gcn_out = model.gcn_encoder(p_x, g.edge_index)    # [N, D]
-#                 raw_emb.append(p_x[target_node].unsqueeze(0))
-#                 seq_emb.append(gcn_out[target_node].unsqueeze(0))
-#             f_seq = torch.stack(seq_emb, dim=1)  # [1,T,D]
-#             f_raw = torch.stack(raw_emb, dim=1)  # [1,T,P]
-
-#             b = baseline_score
-#             if not torch.is_tensor(b):
-#                 b = torch.tensor([float(b)], dtype=torch.float32)
-#             if b.ndim == 0:
-#                 b = b.view(1)
-#             p, _ = model(f_seq, f_raw, b.to(device))
-#         return float(p.view(-1)[0].item())
-
-#     # main curve
-#     scores_main = []
-#     for k in k_list:
-#         if mode == "deletion":
-#             masked = full_order[:k]
-#         elif mode == "insertion":
-#             masked = full_order[k:]
-#         else:
-#             raise ValueError(mode)
-
-#         graphs_m = [apply_feature_mask_on_x_target(g, target_node, masked, mode=mask_mode)
-#             for g in input_graphs]
-#         scores_main.append(predict(graphs_m))
-
-#     # random baseline
-#     rand_scores = np.zeros((random_trials, len(k_list)), dtype=np.float64)
-#     for t in range(random_trials):
-#         rand_order = np.random.permutation(F).tolist()
-#         for i, k in enumerate(k_list):
-#             masked = rand_order[:k] if mode == "deletion" else rand_order[k:]
-#             graphs_m = [_apply_node_feature_mask_on_graph(g, target_node, masked, mode="zero")
-#                         for g in input_graphs]
-#             rand_scores[t, i] = predict(graphs_m)
-
-#     return k_list, np.array(scores_main), rand_scores.mean(0), rand_scores.std(0)
-# def deletion_insertion_feature_v2(
-#     model,
-#     input_graphs,        # list[Data] length T
-#     target_node,         # int (global id)
-#     baseline_score,      # float
-#     feature_order,       # list[int] (x-dim)
-#     mode="deletion",     # "deletion" or "insertion"
-#     random_trials=30,
-#     device="cpu",
-#     mask_mode="zero",
-# ):
-#     model.eval()
-#     Fdim = int(input_graphs[0].x.shape[1])
-
-#     order = [int(i) for i in feature_order if 0 <= int(i) < Fdim]
-#     order = list(dict.fromkeys(order))  # de-dup keep order
-#     if len(order) == 0:
-#         order = list(range(Fdim))
-
-#     k_list = list(range(0, len(order) + 1))
-#     base_t = torch.tensor([float(baseline_score)], dtype=torch.float32, device=device)
-
-#     def predict(graphs):
-#         with torch.no_grad():
-#             seq_emb, raw_emb = [], []
-#             for g in graphs:
-#                 g = g.to(device)
-#                 p_x = model.projection_layer(g.x)                  # [N,P]
-#                 gcn_out = model.gcn_encoder(p_x, g.edge_index)     # [N,D]
-#                 raw_emb.append(p_x[target_node].unsqueeze(0))      # [1,P]
-#                 seq_emb.append(gcn_out[target_node].unsqueeze(0))  # [1,D]
-#             f_seq = torch.stack(seq_emb, dim=1)   # [1,T,D]
-#             f_raw = torch.stack(raw_emb, dim=1)   # [1,T,P]
-#             p, _ = model(f_seq, f_raw, base_t)
-#         return float(p.view(-1)[0].item())
-
-#     # main curve
-#     scores_main = []
-#     for k in k_list:
-#         if mode == "deletion":
-#             masked = order[:k]
-#         elif mode == "insertion":
-#             masked = order[k:]   # keep top-k, mask rest
-#         else:
-#             raise ValueError("mode must be deletion or insertion")
-
-#         graphs_m = [apply_feature_mask_on_x_target(g, target_node, masked, mode=mask_mode)
-#                     for g in input_graphs]
-#         scores_main.append(predict(graphs_m))
-
-#     # random baseline (✅ target-only に統一)
-#     rand_scores = np.zeros((int(random_trials), len(k_list)), dtype=np.float32)
-#     rng = np.random.RandomState(int(params.get("SEED", 0)))
-#     for t in range(int(random_trials)):
-#         rand_order = rng.permutation(order).tolist()
-#         for i, k in enumerate(k_list):
-#             if mode == "deletion":
-#                 masked = rand_order[:k]
-#             else:
-#                 masked = rand_order[k:]
-#             graphs_m = [apply_feature_mask_on_x_target(g, target_node, masked, mode=mask_mode)
-#                         for g in input_graphs]
-#             rand_scores[t, i] = predict(graphs_m)
-
-#     return k_list, np.array(scores_main, dtype=np.float32), rand_scores.mean(0), rand_scores.std(0)
-
-
-# def collect_incident_neighbors_union(graphs, target_node: int):
-#     nbrs = set()
-#     u = int(target_node)
-#     for g in graphs:
-#         ei = g.edge_index
-#         src = ei[0].detach().cpu().numpy()
-#         dst = ei[1].detach().cpu().numpy()
-#         # u -> v
-#         nbrs.update(dst[src == u].tolist())
-#         # v -> u
-#         nbrs.update(src[dst == u].tolist())
-#     nbrs.discard(u)
-#     return sorted(int(x) for x in nbrs)
-
-# def apply_edge_mask_incident(graph, target_node, masked_neighbors):
-#     g2 = copy.copy(graph)
-#     ei = graph.edge_index
-#     src, dst = ei
-#     masked = torch.as_tensor(masked_neighbors, device=dst.device, dtype=dst.dtype)
-#     if masked.numel() == 0:
-#         return g2
-#     keep = ~(
-#         ((src == int(target_node)) & torch.isin(dst, masked)) |
-#         ((dst == int(target_node)) & torch.isin(src, masked))
-#     )
-#     g2.edge_index = ei[:, keep]
-#     return g2
-
-# def deletion_insertion_edge_v3(
-#     model,
-#     input_graphs,
-#     target_node,
-#     baseline_score,
-#     ranked_neighbor_order,   # subset OK
-#     mode="deletion",
-#     random_trials=50,
-#     seed=0,
-#     device="cpu",
-# ):
-#     model.eval()
-#     all_nbrs = collect_incident_neighbors_union(input_graphs, target_node)
-
-#     ranked = [int(n) for n in ranked_neighbor_order if int(n) in set(all_nbrs)]
-#     ranked = list(dict.fromkeys(ranked))
-#     rest = [n for n in all_nbrs if n not in set(ranked)]
-#     full_order = ranked + rest
-
-#     K = len(full_order)
-#     k_list = list(range(0, K + 1))
-#     base_t = torch.tensor([float(baseline_score)], dtype=torch.float32, device=device)
-
-#     def predict(graphs):
-#         with torch.no_grad():
-#             seq_emb, raw_emb = [], []
-#             for g in graphs:
-#                 g = g.to(device)
-#                 p_x = model.projection_layer(g.x)
-#                 gcn_out = model.gcn_encoder(p_x, g.edge_index)
-#                 raw_emb.append(p_x[int(target_node)].unsqueeze(0))
-#                 seq_emb.append(gcn_out[int(target_node)].unsqueeze(0))
-#             f_seq = torch.stack(seq_emb, dim=1)
-#             f_raw = torch.stack(raw_emb, dim=1)
-#             p, _ = model(f_seq, f_raw, base_t)
-#         return float(p.view(-1)[0].item())
-
-#     orig = predict(input_graphs)
-
-#     scores_main = []
-#     for k in k_list:
-#         if mode == "deletion":
-#             masked = full_order[:k]
-#         elif mode == "insertion":
-#             masked = full_order[k:]
-#         else:
-#             raise ValueError(mode)
-#         graphs_m = [apply_edge_mask_incident(g, target_node, masked) for g in input_graphs]
-#         scores_main.append(predict(graphs_m))
-
-#     rng = np.random.RandomState(int(seed))
-#     rand_scores = np.zeros((int(random_trials), len(k_list)), dtype=np.float32)
-#     for t in range(int(random_trials)):
-#         perm = rng.permutation(K).tolist()
-#         perm_order = [full_order[i] for i in perm]
-#         for i, k in enumerate(k_list):
-#             masked = perm_order[:k] if mode == "deletion" else perm_order[k:]
-#             graphs_m = [apply_edge_mask_incident(g, target_node, masked) for g in input_graphs]
-#             rand_scores[t, i] = predict(graphs_m)
-
-#     return k_list, np.array(scores_main, np.float32), rand_scores.mean(0), rand_scores.std(0), orig, K
-
 
 
 def apply_edge_mask(graph, target_node: int, masked_neighbors):
@@ -3248,62 +3026,6 @@ def apply_edge_mask(graph, target_node: int, masked_neighbors):
     return graph_m
 
 
-def deletion_insertion_edge(
-    model,
-    input_graphs,    # list of T graphs
-    target_node,
-    baseline_score,
-    edge_order,
-    mode="deletion",
-    random_trials=20,
-    device="cpu"
-):
-    T = len(input_graphs)
-    E = len(edge_order)
-    k_list = list(range(0, E + 1))
-
-    def predict(graphs):
-        with torch.no_grad():
-            seq_emb, raw_emb = [], []
-            for g in graphs:
-                g = g.to(device)
-                p_x = model.projection_layer(g.x)
-                gcn_out = model.gcn_encoder(p_x, g.edge_index)
-                raw_emb.append(p_x[target_node].unsqueeze(0))
-                seq_emb.append(gcn_out[target_node].unsqueeze(0))
-            f_seq = torch.stack(seq_emb, dim=1)
-            f_raw = torch.stack(raw_emb, dim=1)
-            p, _ = model(f_seq, f_raw, baseline_score.to(device))
-        return float(p.item())
-
-    scores_main = []
-
-    for k in k_list:
-        if mode == "deletion":
-            masked = edge_order[:k]
-        else:
-            masked = edge_order[k:]
-
-        graphs_m = [
-            apply_edge_mask(g, target_node, masked)
-            for g in input_graphs
-        ]
-        scores_main.append(predict(graphs_m))
-
-    # random
-    rand_scores = np.zeros((random_trials, len(k_list)))
-
-    for t in range(random_trials):
-        rand_order = np.random.permutation(edge_order).tolist()
-        for i, k in enumerate(k_list):
-            masked = rand_order[:k] if mode == "deletion" else rand_order[k:]
-            graphs_m = [
-                apply_edge_mask(g, target_node, masked)
-                for g in input_graphs
-            ]
-            rand_scores[t, i] = predict(graphs_m)
-
-    return k_list, np.array(scores_main), rand_scores.mean(0), rand_scores.std(0)
 
 
 def predict_seq_only_from_graphs(model, graphs, target_node, baseline_score, device="cpu"):
@@ -3471,12 +3193,15 @@ def run_experiment(params, graphs_data, target_node_idx, experiment_id=None):
                 seq_emb, raw_emb = [], []
                 for g in graphs:
                     g = g.to(device)
-                    p_x = model.projection_layer(g.x)
-                    gcn_out = model.gcn_encoder(p_x, g.edge_index)
-                    raw_emb.append(p_x[int(target_node)].unsqueeze(0))
-                    seq_emb.append(gcn_out[int(target_node)].unsqueeze(0))
-                f_seq = torch.stack(seq_emb, dim=1)
-                f_raw = torch.stack(raw_emb, dim=1)
+                    p_x = model.projection_layer(g.x)              # [N,P]
+                    gcn_out = model.gcn_encoder(p_x, g.edge_index) # [N,D]
+                    raw_emb.append(p_x[int(target_node)].unsqueeze(0))     # [1,P]
+                    seq_emb.append(gcn_out[int(target_node)].unsqueeze(0)) # [1,D]
+
+                f_seq = torch.stack(seq_emb, dim=1)  # [1,T,D]
+                f_raw = torch.stack(raw_emb, dim=1)  # [1,T,P]
+                base_t = torch.tensor([float(baseline_score)], dtype=f_seq.dtype, device=device)
+
                 p, _ = model(f_seq, f_raw, base_t)
                 return float(p.view(-1)[0].item())
 
@@ -3495,7 +3220,6 @@ def run_experiment(params, graphs_data, target_node_idx, experiment_id=None):
                         for g in input_graphs]
             scores_main.append(predict(graphs_m))
 
-        # random baseline (★full_order を permute,★target-only に統一)
         rng = np.random.RandomState(int(seed))
         rand_scores = np.zeros((int(random_trials), len(k_list)), dtype=np.float32)
         for t in range(int(random_trials)):
@@ -3612,63 +3336,6 @@ def run_experiment(params, graphs_data, target_node_idx, experiment_id=None):
 
         return k_list, np.array(scores_main, np.float32), rand_scores.mean(0), rand_scores.std(0), orig, K
 
-    # def deletion_insertion_edge_v2(
-    #     model,
-    #     input_graphs,        # list[Data] length T
-    #     target_node,         # int
-    #     baseline_score,      # float
-    #     edge_order,          # list[int] neighbor ids (global ids)
-    #     mode="deletion",
-    #     random_trials=30,
-    #     device="cpu",
-    # ):
-    #     model.eval()
-    #     order = [int(n) for n in edge_order]
-    #     order = list(dict.fromkeys(order))  # de-dup keep order
-    #     k_list = list(range(0, len(order) + 1))
-    #     base_t = torch.tensor([float(baseline_score)], dtype=torch.float32, device=device)
-
-    #     def predict(graphs):
-    #         with torch.no_grad():
-    #             seq_emb, raw_emb = [], []
-    #             for g in graphs:
-    #                 g = g.to(device)
-    #                 p_x = model.projection_layer(g.x)
-    #                 gcn_out = model.gcn_encoder(p_x, g.edge_index)
-    #                 raw_emb.append(p_x[target_node].unsqueeze(0))
-    #                 seq_emb.append(gcn_out[target_node].unsqueeze(0))
-    #             f_seq = torch.stack(seq_emb, dim=1)
-    #             f_raw = torch.stack(raw_emb, dim=1)
-    #             p, _ = model(f_seq, f_raw, base_t)
-    #         return float(p.view(-1)[0].item())
-
-    #     # main curve
-    #     scores_main = []
-    #     for k in k_list:
-    #         if mode == "deletion":
-    #             masked = order[:k]
-    #         elif mode == "insertion":
-    #             masked = order[k:]   # keep top-k, mask rest
-    #         else:
-    #             raise ValueError("mode must be deletion or insertion")
-
-    #         graphs_m = [apply_edge_mask_incident(g, target_node, masked) for g in input_graphs]
-    #         scores_main.append(predict(graphs_m))
-
-    #     # random baseline
-    #     rand_scores = np.zeros((int(random_trials), len(k_list)), dtype=np.float32)
-    #     rng = np.random.RandomState(int(params.get("SEED", 0)))
-    #     for t in range(int(random_trials)):
-    #         rand_order = rng.permutation(order).tolist()
-    #         for i, k in enumerate(k_list):
-    #             if mode == "deletion":
-    #                 masked = rand_order[:k]
-    #             else:
-    #                 masked = rand_order[k:]
-    #             graphs_m = [apply_edge_mask_incident(g, target_node, masked) for g in input_graphs]
-    #             rand_scores[t, i] = predict(graphs_m)
-
-    #     return k_list, np.array(scores_main, dtype=np.float32), rand_scores.mean(0), rand_scores.std(0)
 
 
     def log_di_plot(k, main, rmean, rstd, title, fname, artifact_path):
@@ -3958,8 +3625,9 @@ def run_experiment(params, graphs_data, target_node_idx, experiment_id=None):
                 g = g.to(device)
                 p_x = model.projection_layer(g.x)
                 gcn_out = model.gcn_encoder(p_x, g.edge_index)
-                raw_emb_l.append(p_x.cpu())
-                seq_emb_l.append(gcn_out.cpu())
+                raw_emb_l.append(p_x.index_select(0, inf_global).cpu())     # [Ninf,P]
+                seq_emb_l.append(gcn_out.index_select(0, inf_global).cpu()) # [Ninf,D]
+                # 以降 influencer_indices での再indexが不要になる
 
             # embeddings aligned to influencer_indices order
             # seq_emb_l: list of [Ninf,D] (already in inf_global order)
@@ -4586,88 +4254,88 @@ def run_experiment(params, graphs_data, target_node_idx, experiment_id=None):
                                         title=f"Insertion (Edge) user={idx_to_node.get(int(target_node_global_idx), str(int(target_node_global_idx)))} {tag}",
                                         fname=fname, artifact_path="xai/deletion_insertion")
 
-                    # if orders still empty, skip DI (or fallback to all features)
-                    try:
-                        # FEATURE deletion/insertion
-                        if len(feat_order) > 0:
-                            k, main, rmean, rstd = deletion_insertion_feature_v3(
-                                model=model,
-                                input_graphs=input_graphs,
-                                target_node=int(target_node_global_idx),
-                                baseline_score=float(base_user),
-                                feature_order=feat_order,
-                                mode="deletion",
-                                random_trials=di_random_trials,
-                                device=device,
-                                mask_mode="zero",
-                            )
-                            fname = f"di_feature_deletion_{tag}_{run_name}.png"
-                            log_di_plot(
-                                k, main, rmean, rstd,
-                                title=f"Deletion (Feature) user={idx_to_node.get(int(target_node_global_idx), str(int(target_node_global_idx)))} {tag}",
-                                fname=fname,
-                                artifact_path="xai/deletion_insertion",
-                            )
+                    # # if orders still empty, skip DI (or fallback to all features)
+                    # try:
+                    #     # FEATURE deletion/insertion
+                    #     if len(feat_order) > 0:
+                    #         k, main, rmean, rstd = deletion_insertion_feature_v3(
+                    #             model=model,
+                    #             input_graphs=input_graphs,
+                    #             target_node=int(target_node_global_idx),
+                    #             baseline_score=float(base_user),
+                    #             feature_order=feat_order,
+                    #             mode="deletion",
+                    #             random_trials=di_random_trials,
+                    #             device=device,
+                    #             mask_mode="zero",
+                    #         )
+                    #         fname = f"di_feature_deletion_{tag}_{run_name}.png"
+                    #         log_di_plot(
+                    #             k, main, rmean, rstd,
+                    #             title=f"Deletion (Feature) user={idx_to_node.get(int(target_node_global_idx), str(int(target_node_global_idx)))} {tag}",
+                    #             fname=fname,
+                    #             artifact_path="xai/deletion_insertion",
+                    #         )
 
-                            k, main, rmean, rstd = deletion_insertion_feature_v3(
-                                model=model,
-                                input_graphs=input_graphs,
-                                target_node=int(target_node_global_idx),
-                                baseline_score=float(base_user),
-                                feature_order=feat_order,
-                                mode="insertion",
-                                random_trials=di_random_trials,
-                                device=device,
-                                mask_mode="zero",
-                            )
-                            fname = f"di_feature_insertion_{tag}_{run_name}.png"
-                            log_di_plot(
-                                k, main, rmean, rstd,
-                                title=f"Insertion (Feature) user={idx_to_node.get(int(target_node_global_idx), str(int(target_node_global_idx)))} {tag}",
-                                fname=fname,
-                                artifact_path="xai/deletion_insertion",
-                            )
+                    #         k, main, rmean, rstd = deletion_insertion_feature_v3(
+                    #             model=model,
+                    #             input_graphs=input_graphs,
+                    #             target_node=int(target_node_global_idx),
+                    #             baseline_score=float(base_user),
+                    #             feature_order=feat_order,
+                    #             mode="insertion",
+                    #             random_trials=di_random_trials,
+                    #             device=device,
+                    #             mask_mode="zero",
+                    #         )
+                    #         fname = f"di_feature_insertion_{tag}_{run_name}.png"
+                    #         log_di_plot(
+                    #             k, main, rmean, rstd,
+                    #             title=f"Insertion (Feature) user={idx_to_node.get(int(target_node_global_idx), str(int(target_node_global_idx)))} {tag}",
+                    #             fname=fname,
+                    #             artifact_path="xai/deletion_insertion",
+                    #         )
 
-                        # EDGE deletion/insertion
-                        if len(edge_order) > 0:
-                            k, main, rmean, rstd = deletion_insertion_edge_v3(
-                                model=model,
-                                input_graphs=input_graphs,
-                                target_node=int(target_node_global_idx),
-                                baseline_score=float(base_user),
-                                edge_order=edge_order,
-                                mode="deletion",
-                                random_trials=di_random_trials,
-                                device=device,
-                            )
-                            fname = f"di_edge_deletion_{tag}_{run_name}.png"
-                            log_di_plot(
-                                k, main, rmean, rstd,
-                                title=f"Deletion (Edge) user={idx_to_node.get(int(target_node_global_idx), str(int(target_node_global_idx)))} {tag}",
-                                fname=fname,
-                                artifact_path="xai/deletion_insertion",
-                            )
+                    #     # EDGE deletion/insertion
+                    #     if len(edge_order) > 0:
+                    #         k, main, rmean, rstd = deletion_insertion_edge_v3(
+                    #             model=model,
+                    #             input_graphs=input_graphs,
+                    #             target_node=int(target_node_global_idx),
+                    #             baseline_score=float(base_user),
+                    #             edge_order=edge_order,
+                    #             mode="deletion",
+                    #             random_trials=di_random_trials,
+                    #             device=device,
+                    #         )
+                    #         fname = f"di_edge_deletion_{tag}_{run_name}.png"
+                    #         log_di_plot(
+                    #             k, main, rmean, rstd,
+                    #             title=f"Deletion (Edge) user={idx_to_node.get(int(target_node_global_idx), str(int(target_node_global_idx)))} {tag}",
+                    #             fname=fname,
+                    #             artifact_path="xai/deletion_insertion",
+                    #         )
 
-                            k, main, rmean, rstd = deletion_insertion_edge_v3(
-                                model=model,
-                                input_graphs=input_graphs,
-                                target_node=int(target_node_global_idx),
-                                baseline_score=float(base_user),
-                                edge_order=edge_order,
-                                mode="insertion",
-                                random_trials=di_random_trials,
-                                device=device,
-                            )
-                            fname = f"di_edge_insertion_{tag}_{run_name}.png"
-                            log_di_plot(
-                                k, main, rmean, rstd,
-                                title=f"Insertion (Edge) user={idx_to_node.get(int(target_node_global_idx), str(int(target_node_global_idx)))} {tag}",
-                                fname=fname,
-                                artifact_path="xai/deletion_insertion",
-                            )
+                    #         k, main, rmean, rstd = deletion_insertion_edge_v3(
+                    #             model=model,
+                    #             input_graphs=input_graphs,
+                    #             target_node=int(target_node_global_idx),
+                    #             baseline_score=float(base_user),
+                    #             edge_order=edge_order,
+                    #             mode="insertion",
+                    #             random_trials=di_random_trials,
+                    #             device=device,
+                    #         )
+                    #         fname = f"di_edge_insertion_{tag}_{run_name}.png"
+                    #         log_di_plot(
+                    #             k, main, rmean, rstd,
+                    #             title=f"Insertion (Edge) user={idx_to_node.get(int(target_node_global_idx), str(int(target_node_global_idx)))} {tag}",
+                    #             fname=fname,
+                    #             artifact_path="xai/deletion_insertion",
+                    #         )
 
-                    except Exception as e:
-                        print("⚠️ deletion/insertion failed:", e)
+                    # except Exception as e:
+                    #     print("⚠️ deletion/insertion failed:", e)
 
         except Exception as e:
             print(f"💥 Explanation Error: {e}")
