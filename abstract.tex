@@ -134,6 +134,7 @@ s_{u,\tau}=\mathrm{RNN}(h_{u,\tau}, s_{u,\tau-1}; \theta_{\mathrm{rnn}})
 + \lambda_1\|m^{\mathrm{feat}}\|_1 + \lambda_2\|m^{\mathrm{edge}}\|_1
 \]
 最適化後のマスク値を重要度（importance）として用いる．重要度は「どの要素が選ばれたか」を表すが，符号（スコアを増やす/減らす方向）を含まないため，重要とされた要素を基準値へ置換したときの予測スコア差分を符号付き影響度（score impact）として算出する．これにより，「何が重要か（importance）」と「どう効くか（score impact）」を分離して提示できる．なお，score impactは局所的な反実仮想量であり，因果効果の断定は行わない．
+
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=1\linewidth]{figures/mask_optimization.png}
@@ -141,34 +142,6 @@ s_{u,\tau}=\mathrm{RNN}(h_{u,\tau}, s_{u,\tau-1}; \theta_{\mathrm{rnn}})
     \label{fig:maskopt_concept}
 \end{figure}
 
-
-
-% \vspace{2pt}
-% \begin{figure*}[t]
-%   \centering
-%   \fbox{\parbox{0.95\textwidth}{
-%   \textbf{図：提案枠組み（プレースホルダ）}\\
-%   月次グラフ$\rightarrow$GNN$\rightarrow$RNN/Attention$\rightarrow$ランキング予測．
-%   予測モデル固定後，特徴量・エッジにマスクを導入して最適化し，importanceとscore impactを出力．
-%   集約により「共通/個別」のパターンを可視化．
-%   }}
-%   \vspace{-6pt}
-%   \caption{予測（InfluencerRank型）と説明（MaskOpt）の統合．}
-% \end{figure*}
-
-% \subsection*{応用例（実験）}
-% \paragraph{データ分割と評価指標}
-% 2017年1月〜11月を学習用，12月をテスト用として評価した．評価指標はランキング品質を表すNDCG@k（例：$k=10,50$）および閲覧行動モデルに基づくRBP（例：$p=0.95$）を用いる．比較として，単純ベースライン（過去統計に基づく順位付け等）および既存GNN系手法を用いた．
-
-% \paragraph{実験1：予測精度の検証（定量評価）}
-% まず，予測モデル自体が妥当なランキング性能を示すことを確認する．具体的には，テスト月における全ユーザーの予測順位と正解順位からNDCG/RBPを算出し，ベースラインや比較手法と相対比較する．この段階の目的は，後続の説明実験が成立する前提として「学習済みモデルが少なくとも妥当なランキングを出力している」ことを担保することである．
-
-% \paragraph{実験2：予測根拠の可視化と妥当性検証（定性＋忠実性）}
-% 次に，予測上位ユーザーに対してMaskOptを適用し，重要特徴量および重要近傍（エッジ）を抽出する．さらに，上位要素を基準値に置換した際のscore impactを算出し，「重要とされた要素を操作すると予測が想定通り変化するか」を確認する．
-% 加えて，説明がモデルの学習信号に依存していることを確認するため，重み・ラベルのシャッフル等によるsanity checkを行い，説明の一貫性が低下するかを検証する．
-
-% \paragraph{実験3：一般性（共通/個別）の検討（集約）}
-% 最後に，上位ユーザー群の説明結果を集約し，特徴量・近傍タイプごとのimportance/impactの分布を可視化する．これにより，(i)多くのユーザーで共通して重要となる要因，(ii)一部のユーザーにのみ重要となる局所要因，(iii)月次で変動する要因，を区別して整理する．
 
 \subsection*{解析例}
 ツールとしての信頼性を担保すべく、大きく3点の観点から解析を行った。
@@ -192,13 +165,13 @@ s_{u,\tau}=\mathrm{RNN}(h_{u,\tau}, s_{u,\tau-1}; \theta_{\mathrm{rnn}})
   \vspace{-4pt}
   \caption{予測性能（例：12月テスト）．}\label{tab:perf}
   \vspace{-6pt}
-  \begin{tabular}{l|cc}
+  \begin{tabular}{l|ccc}
     \hline
-    手法 & NDCG@50 & RBP(0.95) \\
+    手法 & NDCG@50 & RBP(0.95) & Pearson \\
     \hline
-    提案（InfluencerRank型） & \textbf{0.xx} & \textbf{0.xx} \\
-    ベースライン & 0.xx & 0.xx \\
-    ランダム & 0.xx & 0.xx \\
+    InfluencerRank & \textbf{0.89} & \textbf{0.043} & \textbf{0.48} \\
+    UA(投稿頻度) & 0.49 & 0.024 & 0.09 \\
+    DeepInf & 0.56 & 0.031 & 0.23 \\
     \hline
   \end{tabular}
   \vspace{-8pt}
