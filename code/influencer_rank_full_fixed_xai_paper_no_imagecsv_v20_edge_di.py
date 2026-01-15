@@ -1352,7 +1352,6 @@ class _DisableCudnn:
 
 
 
-
 def maskopt_e2e_explain(
     model,
     input_graphs,
@@ -3392,7 +3391,19 @@ def run_experiment(params, graphs_data, target_node_idx, experiment_id=None):
 
 
 
-    def log_di_plot(k, main, rmean, rstd, title, fname, artifact_path):
+    def log_di_plot(k, main, rmean, rstd, title, fname, artifact_path, also_log_csv=True):
+        import mlflow
+        import numpy as np
+        import pandas as pd
+        import os
+        import matplotlib.pyplot as plt
+
+        k = np.asarray(k, dtype=int)
+        main = np.asarray(main, dtype=float)
+        rmean = np.asarray(rmean, dtype=float)
+        rstd = np.asarray(rstd, dtype=float)
+
+        # --- PNG ---
         plt.figure()
         plt.plot(k, main, marker="o", label="importance-order")
         plt.plot(k, rmean, linestyle="--", label="random mean")
@@ -3404,8 +3415,24 @@ def run_experiment(params, graphs_data, target_node_idx, experiment_id=None):
         plt.tight_layout()
         plt.savefig(fname, dpi=220)
         plt.close()
-        mlflow.log_artifact(fname, artifact_path=artifact_path)
+
+        if mlflow.active_run() is not None:
+            mlflow.log_artifact(fname, artifact_path=artifact_path)
         os.remove(fname)
+
+        # --- CSV (curve values) ---
+        if also_log_csv:
+            csv_path = os.path.splitext(fname)[0] + ".csv"
+            df = pd.DataFrame({
+                "k": k,
+                "score_main": main,
+                "score_rand_mean": rmean,
+                "score_rand_std": rstd,
+            })
+            df.to_csv(csv_path, index=False, float_format="%.8e")
+            if mlflow.active_run() is not None:
+                mlflow.log_artifact(csv_path, artifact_path=artifact_path)
+            os.remove(csv_path)
 
     # --------------------------------
     # unpack graphs_data
@@ -4209,186 +4236,145 @@ def run_experiment(params, graphs_data, target_node_idx, experiment_id=None):
                             feat_order = tmp
 
                     # ===== EDGE order (neighbor ids) =====
+                    # edge_order = []
+                    # if df_edge is not None and (not df_edge.empty):
+                    #     nbr_col = _pick_col(df_edge, ["neighbor_global_id", "neighbor_id", "nbr_id", "neighbor", "node_id", "dst", "src"])
+                    #     imp_col = _pick_col(df_edge, ["importance", "score_impact", "impact", "weight", "mask"])
+
+                    #     if nbr_col is not None:
+                    #         s = df_edge[nbr_col]
+                    #         # 文字列なら node_to_idx で引く（無理ならスキップ）
+                    #         if s.dtype == object:
+                    #             tmp = []
+                    #             for nm in s.astype(str).tolist():
+                    #                 if nm in node_to_idx:
+                    #                     tmp.append(int(node_to_idx[nm]))
+                    #             edge_order = tmp
+                    #         else:
+                    #             if imp_col is not None:
+                    #                 edge_order = (
+                    #                     df_edge.sort_values(imp_col, ascending=False)[nbr_col]
+                    #                     .astype(int).tolist()
+                    #                 )
+                    #             else:
+                    #                 edge_order = df_edge[nbr_col].astype(int).tolist()
+
+
+                    import re
+
+                    # ===== EDGE order (neighbor ids) =====
                     edge_order = []
                     if df_edge is not None and (not df_edge.empty):
+
+                        def _pick_col(df, cols):
+                            for c in cols:
+                                if c in df.columns:
+                                    return c
+                            return None
+
+                        # importance column
+                        imp_col = _pick_col(df_edge, ["importance", "Importance", "score_impact", "Score_Impact(masked)", "impact", "weight", "mask"])
+
+                        # まずは neighbor_id 系があればそれを使う
                         nbr_col = _pick_col(df_edge, ["neighbor_global_id", "neighbor_id", "nbr_id", "neighbor", "node_id", "dst", "src"])
-                        imp_col = _pick_col(df_edge, ["importance", "score_impact", "impact", "weight", "mask"])
 
                         if nbr_col is not None:
-                            s = df_edge[nbr_col]
-                            # 文字列なら node_to_idx で引く（無理ならスキップ）
+                            d = df_edge.sort_values(imp_col, ascending=False) if imp_col else df_edge
+                            s = d[nbr_col]
                             if s.dtype == object:
                                 tmp = []
                                 for nm in s.astype(str).tolist():
-                                    if nm in node_to_idx:
-                                        tmp.append(int(node_to_idx[nm]))
+                                    nm2 = nm.strip()
+                                    if nm2 in node_to_idx:
+                                        tmp.append(int(node_to_idx[nm2]))
+                                    elif nm2.isdigit() and (str(int(nm2)) in node_to_idx):
+                                        tmp.append(int(node_to_idx[str(int(nm2))]))
                                 edge_order = tmp
                             else:
-                                if imp_col is not None:
-                                    edge_order = (
-                                        df_edge.sort_values(imp_col, ascending=False)[nbr_col]
-                                        .astype(int).tolist()
-                                    )
-                                else:
-                                    edge_order = df_edge[nbr_col].astype(int).tolist()
+                                edge_order = (df_edge.sort_values(imp_col, ascending=False)[nbr_col] if imp_col else df_edge[nbr_col]).astype(int).tolist()
 
-                    # ===== DI curves =====
-                    if do_di and (row_nz is not None):
+                        else:
+                            # ★ fallback: Name 列しか無い場合
+                            name_col = _pick_col(df_edge, ["neighbor_name", "Name", "name"])
+                            if name_col is not None:
+                                d = df_edge.sort_values(imp_col, ascending=False) if imp_col else df_edge
 
-                        seed0 = int(params.get("SEED", 0))
+                                tmp = []
+                                for nm in d[name_col].astype(str).tolist():
+                                    nm2 = nm.strip()
 
-                        # --- FEATURE deletion/insertion ---
-                        if len(feat_order) > 0:
-                            k, main, rmean, rstd, orig = deletion_insertion_feature_v3(
-                                model=model,
-                                input_graphs=input_graphs,
-                                target_node=int(target_node_global_idx),
-                                baseline_score=float(base_user),
-                                ranked_feature_order=feat_order,     # ★引数名修正
-                                mode="deletion",
-                                random_trials=di_random_trials,
-                                seed=seed0,
-                                device=device,
-                                mask_mode="zero",
-                            )
-                            fname = f"di_feature_deletion_{tag}_{run_name}.png"
-                            log_di_plot(k, main, rmean, rstd,
-                                        title=f"Deletion (Feature) user={idx_to_node.get(int(target_node_global_idx), str(int(target_node_global_idx)))} {tag}",
-                                        fname=fname, artifact_path="xai/deletion_insertion")
+                                    # 1) そのまま key として引けるケース（"#tag", "@mention", "obj:xxx", "12345" 等）
+                                    if nm2 in node_to_idx:
+                                        tmp.append(int(node_to_idx[nm2]))
+                                        continue
 
-                            k, main, rmean, rstd, orig = deletion_insertion_feature_v3(
-                                model=model,
-                                input_graphs=input_graphs,
-                                target_node=int(target_node_global_idx),
-                                baseline_score=float(base_user),
-                                ranked_feature_order=feat_order,     # ★引数名修正
-                                mode="insertion",
-                                random_trials=di_random_trials,
-                                seed=seed0,
-                                device=device,
-                                mask_mode="zero",
-                            )
-                            fname = f"di_feature_insertion_{tag}_{run_name}.png"
-                            log_di_plot(k, main, rmean, rstd,
-                                        title=f"Insertion (Feature) user={idx_to_node.get(int(target_node_global_idx), str(int(target_node_global_idx)))} {tag}",
-                                        fname=fname, artifact_path="xai/deletion_insertion")
+                                    # 2) 数字だけのケース（"00123" みたいなのも吸収）
+                                    if nm2.isdigit():
+                                        k = str(int(nm2))
+                                        if k in node_to_idx:
+                                            tmp.append(int(node_to_idx[k]))
+                                            continue
 
-                        # --- EDGE deletion/insertion ---
-                        if len(edge_order) > 0:
-                            k, main, rmean, rstd, orig, K = deletion_insertion_edge_v3(
-                                model=model,
-                                input_graphs=input_graphs,
-                                target_node=int(target_node_global_idx),
-                                baseline_score=float(base_user),
-                                ranked_neighbor_order=edge_order,    # ★引数名修正
-                                mode="deletion",
-                                random_trials=di_random_trials,
-                                seed=seed0,
-                                device=device,
-                            )
-                            fname = f"di_edge_deletion_{tag}_{run_name}.png"
-                            log_di_plot(k, main, rmean, rstd,
-                                        title=f"Deletion (Edge) user={idx_to_node.get(int(target_node_global_idx), str(int(target_node_global_idx)))} {tag}",
-                                        fname=fname, artifact_path="xai/deletion_insertion")
+                                    # 3) 先頭に gid が付いてる文字列から抽出するケース（例: "12345 | ..."）
+                                    m = re.match(r"^\s*(\d+)", nm2)
+                                    if m:
+                                        k = str(int(m.group(1)))
+                                        if k in node_to_idx:
+                                            tmp.append(int(node_to_idx[k]))
+                                            continue
 
-                            k, main, rmean, rstd, orig, K = deletion_insertion_edge_v3(
-                                model=model,
-                                input_graphs=input_graphs,
-                                target_node=int(target_node_global_idx),
-                                baseline_score=float(base_user),
-                                ranked_neighbor_order=edge_order,    # ★引数名修正
-                                mode="insertion",
-                                random_trials=di_random_trials,
-                                seed=seed0,
-                                device=device,
-                            )
-                            fname = f"di_edge_insertion_{tag}_{run_name}.png"
-                            log_di_plot(k, main, rmean, rstd,
-                                        title=f"Insertion (Edge) user={idx_to_node.get(int(target_node_global_idx), str(int(target_node_global_idx)))} {tag}",
-                                        fname=fname, artifact_path="xai/deletion_insertion")
+                                edge_order = tmp
 
-                    # if orders still empty, skip DI (or fallback to all features)
-                    try:
-                        # FEATURE deletion/insertion
-                        if len(feat_order) > 0:
-                            k, main, rmean, rstd = deletion_insertion_feature_v3(
-                                model=model,
-                                input_graphs=input_graphs,
-                                target_node=int(target_node_global_idx),
-                                baseline_score=float(base_user),
-                                feature_order=feat_order,
-                                mode="deletion",
-                                random_trials=di_random_trials,
-                                device=device,
-                                mask_mode="zero",
-                            )
-                            fname = f"di_feature_deletion_{tag}_{run_name}.png"
-                            log_di_plot(
-                                k, main, rmean, rstd,
-                                title=f"Deletion (Feature) user={idx_to_node.get(int(target_node_global_idx), str(int(target_node_global_idx)))} {tag}",
-                                fname=fname,
-                                artifact_path="xai/deletion_insertion",
-                            )
+                    # ★ 念のため重複除去（順序保持）
+                    edge_order = list(dict.fromkeys([int(x) for x in edge_order]))
+                    print(f"[DI-debug] edge_order size={len(edge_order)}  example={edge_order[:5]}")
 
-                            k, main, rmean, rstd = deletion_insertion_feature_v3(
-                                model=model,
-                                input_graphs=input_graphs,
-                                target_node=int(target_node_global_idx),
-                                baseline_score=float(base_user),
-                                feature_order=feat_order,
-                                mode="insertion",
-                                random_trials=di_random_trials,
-                                device=device,
-                                mask_mode="zero",
-                            )
-                            fname = f"di_feature_insertion_{tag}_{run_name}.png"
-                            log_di_plot(
-                                k, main, rmean, rstd,
-                                title=f"Insertion (Feature) user={idx_to_node.get(int(target_node_global_idx), str(int(target_node_global_idx)))} {tag}",
-                                fname=fname,
-                                artifact_path="xai/deletion_insertion",
-                            )
 
-                        # EDGE deletion/insertion
-                        if len(edge_order) > 0:
-                            k, main, rmean, rstd = deletion_insertion_edge_v3(
-                                model=model,
-                                input_graphs=input_graphs,
-                                target_node=int(target_node_global_idx),
-                                baseline_score=float(base_user),
-                                edge_order=edge_order,
-                                mode="deletion",
-                                random_trials=di_random_trials,
-                                device=device,
-                            )
-                            fname = f"di_edge_deletion_{tag}_{run_name}.png"
-                            log_di_plot(
-                                k, main, rmean, rstd,
-                                title=f"Deletion (Edge) user={idx_to_node.get(int(target_node_global_idx), str(int(target_node_global_idx)))} {tag}",
-                                fname=fname,
-                                artifact_path="xai/deletion_insertion",
-                            )
 
-                            k, main, rmean, rstd = deletion_insertion_edge_v3(
-                                model=model,
-                                input_graphs=input_graphs,
-                                target_node=int(target_node_global_idx),
-                                baseline_score=float(base_user),
-                                edge_order=edge_order,
-                                mode="insertion",
-                                random_trials=di_random_trials,
-                                device=device,
-                            )
-                            fname = f"di_edge_insertion_{tag}_{run_name}.png"
-                            log_di_plot(
-                                k, main, rmean, rstd,
-                                title=f"Insertion (Edge) user={idx_to_node.get(int(target_node_global_idx), str(int(target_node_global_idx)))} {tag}",
-                                fname=fname,
-                                artifact_path="xai/deletion_insertion",
-                            )
 
-                    except Exception as e:
-                        print("⚠️ deletion/insertion failed:", e)
+                # --- EDGE deletion/insertion ---
+                if len(edge_order) > 0:
+                    k, main, rmean, rstd, orig, K = deletion_insertion_edge_v3(
+                        model=model,
+                        input_graphs=input_graphs,
+                        target_node=int(target_node_global_idx),
+                        baseline_score=float(base_user),
+                        ranked_neighbor_order=edge_order,
+                        mode="deletion",
+                        random_trials=di_random_trials,
+                        seed=0,
+                        device=device,
+                    )
+                    fname = f"di_edge_deletion_{tag}_{run_name}.png"
+                    log_di_plot(
+                        k, main, rmean, rstd,
+                        title=f"Deletion (Edge) user={idx_to_node.get(int(target_node_global_idx), str(int(target_node_global_idx)))} {tag}",
+                        fname=fname,
+                        artifact_path="xai/deletion_insertion/edge",
+                        also_log_csv=True,
+                    )
+
+                    k, main, rmean, rstd, orig, K = deletion_insertion_edge_v3(
+                        model=model,
+                        input_graphs=input_graphs,
+                        target_node=int(target_node_global_idx),
+                        baseline_score=float(base_user),
+                        ranked_neighbor_order=edge_order,
+                        mode="insertion",
+                        random_trials=di_random_trials,
+                        seed=0,
+                        device=device,
+                    )
+                    fname = f"di_edge_insertion_{tag}_{run_name}.png"
+                    log_di_plot(
+                        k, main, rmean, rstd,
+                        title=f"Insertion (Edge) user={idx_to_node.get(int(target_node_global_idx), str(int(target_node_global_idx)))} {tag}",
+                        fname=fname,
+                        artifact_path="xai/deletion_insertion/edge",
+                        also_log_csv=True,
+                    )
+
+
 
         except Exception as e:
             print(f"💥 Explanation Error: {e}")
