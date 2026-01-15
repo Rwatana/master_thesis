@@ -134,11 +134,16 @@ s_{u,\tau}=\mathrm{RNN}(h_{u,\tau}, s_{u,\tau-1}; \theta_{\mathrm{rnn}})
 + \lambda_1\|m^{\mathrm{feat}}\|_1 + \lambda_2\|m^{\mathrm{edge}}\|_1
 \]
 最適化後のマスク値を重要度（importance）として用いる．重要度は「どの要素が選ばれたか」を表すが，符号（スコアを増やす/減らす方向）を含まないため，重要とされた要素を基準値へ置換したときの予測スコア差分を符号付き影響度（score impact）として算出する．これにより，「何が重要か（importance）」と「どう効くか（score impact）」を分離して提示できる．なお，score impactは局所的な反実仮想量であり，因果効果の断定は行わない．
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=1\linewidth]{figures/mask_optimization.png}
+    \caption{MaskOpt の概念図（予測を維持しつつ特徴量・エッジを疎に残すマスクを最適化）}
+    \label{fig:maskopt_concept}
+\end{figure}
 
-\paragraph{(3) 集約による一般性の分析}
-個別説明は有用だが，実務では「一般に効く要因」と「その人だけの要因」を区別したい．そこで，上位ユーザー群のimportanceやscore impactを集約し，特徴量（および近傍タイプ）ごとに統計量（平均・分散・上位出現率）を算出する．これをヒートマップ等で可視化することで，共通因子と局所因子を整理し，戦略立案に接続可能な形で提示する．
 
-\vspace{2pt}
+
+% \vspace{2pt}
 % \begin{figure*}[t]
 %   \centering
 %   \fbox{\parbox{0.95\textwidth}{
@@ -166,9 +171,11 @@ s_{u,\tau}=\mathrm{RNN}(h_{u,\tau}, s_{u,\tau-1}; \theta_{\mathrm{rnn}})
 % 最後に，上位ユーザー群の説明結果を集約し，特徴量・近傍タイプごとのimportance/impactの分布を可視化する．これにより，(i)多くのユーザーで共通して重要となる要因，(ii)一部のユーザーにのみ重要となる局所要因，(iii)月次で変動する要因，を区別して整理する．
 
 \subsection*{解析例}
+ツールとしての信頼性を担保すべく、大きく3点の観点から解析を行った。
 \paragraph{(1) 予測精度（定量）}
+解析するにあたって，Instagramデータセット（約10万ユーザー，2017年1月〜12月）を用い，過去11ヶ月を学習用，12月をテスト用とした．評価指標はNDCG@50およびRBP(0.95)を採用し，単純ベースライン（過去エンゲージメント統計に基づく順位付け）と比較した．
 表\ref{tab:perf}に主要指標を示す．InfluencerRank型モデルは単純ベースラインを上回り，将来有望ユーザーの上位抽出に有効であることを確認した．
-（※数値は本文の表と完全一致する値に置換すること．）
+また、図\ref{fig:model-prediction}に予測スコアのヒートマップ例を示す．
 \begin{figure}
   \centering
   \includegraphics[width=0.48\textwidth]{figures/exp/exp1-model-prediction.png}
@@ -176,6 +183,9 @@ s_{u,\tau}=\mathrm{RNN}(h_{u,\tau}, s_{u,\tau-1}; \theta_{\mathrm{rnn}})
   \caption{集約例：importanceヒートマップ（プレースホルダ）．}\label{fig:model-prediction}
   \vspace{-8pt}
 \end{figure}
+
+相関分析においても、予測値と真の値が、ずれている部分はあれど、一定の精度で予測できていることが図からわかる。
+
 
 \begin{table}[t]
   \centering
@@ -194,28 +204,31 @@ s_{u,\tau}=\mathrm{RNN}(h_{u,\tau}, s_{u,\tau-1}; \theta_{\mathrm{rnn}})
   \vspace{-8pt}
 \end{table}
 
+この結果から、予測モデルが妥当なランキング性能を示すことを確認した。
+フォロワー数、投稿頻度等の基本的な順位づけに加えて、他の影響度を予測する手法と比較しても高い性能を示すことから、インフルエンサー選定において有効なツールとなり得ることが示唆された。特に、過去のエンゲージメントの値を使用せずにコンテンツの特徴量や関係性に基づいて将来の影響力を予測できている点が重要である。
+Pearson相関係数の値も0.48付近を示し、一定の予測精度が得られている。
+よって、スコアの根拠を説明するための基盤として十分な性能を有していると判断した。
+
 \paragraph{(2) 説明（定性＋忠実性）}
-MaskOptにより重要特徴量・重要近傍が少数にまとまり，ユーザーごとに寄与要因が異なることを確認した．例えば，投稿頻度・投稿間隔に関する統計が重要となるユーザーが存在する一方で，テキスト量や過去履歴，特定近傍との相互作用が支配的となるユーザーも観測された．
-また，上位要素の置換によりscore impactの符号・大きさがモデル出力の変化と整合する傾向が確認され，説明が単なる可視化ではなく予測挙動に結びついていることが示唆された．sanity checkでは学習信号を破壊すると説明の一貫性が低下し，説明がモデル内部の学習結果に依存していることが確認された．
+分析の基となるモデルが妥当な予測を行うことを確認した上で，MaskOptを適用し，重要特徴量・重要近傍を抽出していく。出力結果の例として以下の図が得られる。
 
 \begin{figure}[h]
 \centering
 \begin{minipage}[b]{0.49\columnwidth}
     \centering
     \includegraphics[width=0.9\columnwidth]{figures/exp/exp1-ego-vis.png}
-    \caption{左}\label{fig:ego-vis-jan}
+    \caption{1月のエッジ重要度}\label{fig:ego-vis-jan}
 \end{minipage}
 \begin{minipage}[b]{0.49\columnwidth}
     \centering
     \includegraphics[width=0.9\columnwidth]{figures/exp/exp1-ego-vis2.png}
-    \caption{右}\label{fig:ego-vis2-mar}
+    \caption{3月のエッジ重要度}\label{fig:ego-vis2-mar}
 \end{minipage}
 \end{figure}
 1月、3月のエッジ重要度可視化結果を図\ref{fig:ego-vis-jan},図\ref{fig:ego-vis2-mar}に示す。
-
-
-\paragraph{(3) 一般性（共通/個別）の可視化}
-集約結果から，多くのユーザーに共通して重要となる要因（例：活動量・投稿間隔）と，特定ユーザー群に局所的に重要となる要因（例：特定カテゴリのタグや近傍関係）が併存することが分かった．さらに月次で重要要因が変化する傾向も観測され，時系列として説明を比較する必要性が示唆された．これにより，青田買い意思決定において「一般則」と「個別戦略」を併せて提示できる可能性が得られた．
+この結果からそれぞれの月で重要な近傍エッジが異なることがわかる。
+さらに、重要特徴量・近傍を基準値に置換した際のscore impactを算出し、説明の妥当性を定量的に検証した。
+実際に過去の投稿で使用された際に高いエンゲージメントが得られているのか、全く重要性が感じられない要素が選ばれていないか等を確認し、説明の信頼性を担保した。
 
 \subsection*{まとめ}
 本研究は，(1)時系列・異種混合グラフに基づく影響力ランキング予測の追試実装と評価，
