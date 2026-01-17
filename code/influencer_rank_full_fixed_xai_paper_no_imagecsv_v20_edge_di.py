@@ -3318,50 +3318,58 @@ def run_experiment(params, graphs_data, target_node_idx, experiment_id=None):
         input_graphs,
         target_node,
         baseline_score,
-        ranked_neighbor_order,   # subset OK
+        ranked_neighbor_order,   # MaskOptの上位だけでOK
         mode="deletion",
-        random_trials=50,
+        random_trials=20,
         seed=0,
         device="cpu",
+        max_neighbors=50,        # ★追加：上限
+        k_stride=1,              # ★追加：kの刻み（大きいほど速い）
     ):
         model.eval()
-        all_nbrs = collect_incident_neighbors_union(input_graphs, target_node)
 
-        ranked = [int(n) for n in ranked_neighbor_order if int(n) in set(all_nbrs)]
-        ranked = list(dict.fromkeys(ranked))
-        rest = [n for n in all_nbrs if n not in set(ranked)]
-        full_order = ranked + rest
+        # ★ここが重要：all_nbrs で膨らませない（rankedだけ使う）
+        ranked = [int(n) for n in ranked_neighbor_order]
+        ranked = list(dict.fromkeys(ranked))  # unique, keep order
+        full_order = ranked[:int(max_neighbors)]
 
         K = len(full_order)
-        k_list = list(range(0, K + 1))
-        base_t = torch.tensor([float(baseline_score)], dtype=torch.float32, device=device)
+        if K == 0:
+            # 何も無いならスキップして呼び出し元で判断できるようにする
+            return [0], np.array([np.nan], np.float32), np.array([np.nan], np.float32), np.array([np.nan], np.float32), np.nan, 0
+
+        # k_list を間引く（例：0,1,2,...,K じゃなくても良い）
+        k_list = list(range(0, K + 1, int(k_stride)))
+        if k_list[-1] != K:
+            k_list.append(K)
+
+        def apply_edge_mask_incident(graph, target_node, masked_neighbors):
+            g2 = copy.copy(graph)
+            ei = graph.edge_index
+            src, dst = ei
+            masked = torch.as_tensor(masked_neighbors, device=dst.device, dtype=dst.dtype)
+            if masked.numel() == 0:
+                return g2
+            keep = ~(
+                ((src == int(target_node)) & torch.isin(dst, masked)) |
+                ((dst == int(target_node)) & torch.isin(src, masked))
+            )
+            g2.edge_index = ei[:, keep]
+            return g2
 
         def predict(graphs):
-            """
-            graphs: [T] 個の PyG graph（Jan..Nov など）
-            return: target_node の予測スコア（float）
-            """
             with torch.no_grad():
-                seq_emb = []
-                raw_emb = []
-
+                seq_emb, raw_emb = [], []
                 for g in graphs:
                     g = g.to(device)
-                    p_x = model.projection_layer(g.x)              # [N,P]
-                    gcn_out = model.gcn_encoder(p_x, g.edge_index) # [N,D]
-
-                    # ★ターゲットだけ抜く（これで十分。GCNは全体を再計算してる）
-                    raw_emb.append(p_x[int(target_node)].unsqueeze(0))      # [1,P]
-                    seq_emb.append(gcn_out[int(target_node)].unsqueeze(0))  # [1,D]
-
-                # [T,1,D] -> [1,T,D]
-                f_seq = torch.stack(seq_emb, dim=1)  # [1,T,D]
-                f_raw = torch.stack(raw_emb, dim=1)  # [1,T,P]
-
-                # baseline は 1 人分でOK
+                    p_x = model.projection_layer(g.x)
+                    gcn_out = model.gcn_encoder(p_x, g.edge_index)
+                    raw_emb.append(p_x[int(target_node)].unsqueeze(0))
+                    seq_emb.append(gcn_out[int(target_node)].unsqueeze(0))
+                f_seq = torch.stack(seq_emb, dim=1)
+                f_raw = torch.stack(raw_emb, dim=1)
                 base_t = torch.tensor([float(baseline_score)], dtype=f_seq.dtype, device=device)
-
-                p, _ = model(f_seq, f_raw, base_t)   # p: [1] 想定
+                p, _ = model(f_seq, f_raw, base_t)
                 return float(p.view(-1)[0].item())
 
         orig = predict(input_graphs)
@@ -3371,9 +3379,10 @@ def run_experiment(params, graphs_data, target_node_idx, experiment_id=None):
             if mode == "deletion":
                 masked = full_order[:k]
             elif mode == "insertion":
-                masked = full_order[k:]
+                masked = full_order[k:]   # top-kを残す（=それ以外を削除）
             else:
                 raise ValueError(mode)
+
             graphs_m = [apply_edge_mask_incident(g, target_node, masked) for g in input_graphs]
             scores_main.append(predict(graphs_m))
 
@@ -3389,6 +3398,209 @@ def run_experiment(params, graphs_data, target_node_idx, experiment_id=None):
 
         return k_list, np.array(scores_main, np.float32), rand_scores.mean(0), rand_scores.std(0), orig, K
 
+
+
+    def deletion_insertion_edge_v3(
+        model,
+        input_graphs,
+        target_node,
+        baseline_score,
+        ranked_neighbor_order,   # MaskOpt等の「重要順neighbor id」(node index)
+        mode="deletion",         # "deletion" or "insertion"
+        random_trials=50,
+        seed=0,
+        device="cpu",
+        topK_eval=30,            # ★ここが肝: 0..topK_eval だけ曲線を作る
+        random_pool="all",       # "all" or "topK"（通常は "all" 推奨）
+    ):
+        """
+        Edge deletion/insertion curves (fast + correct behavior)
+
+        Deletion:
+        - main: remove k neighbors following importance order (topK_eval only)
+        - random: remove k neighbors sampled from ALL incident neighbors (default)
+
+        Insertion:
+        - baseline: remove ALL incident edges of target_node (target isolated)
+        - main: add back k neighbors following importance order (topK_eval only)
+        - random: add back k neighbors sampled from ALL incident neighbors (default)
+
+        Returns:
+        k_list, scores_main, rand_mean, rand_std, orig_pred, K_eval
+        """
+        import copy
+        import numpy as np
+        import torch
+
+        model.eval()
+        u = int(target_node)
+
+        # --- helper: union of incident neighbors across months ---
+        def collect_incident_neighbors_union(graphs, target_node: int):
+            nbrs = set()
+            uu = int(target_node)
+            for g in graphs:
+                ei = g.edge_index
+                src = ei[0].detach().cpu().numpy()
+                dst = ei[1].detach().cpu().numpy()
+                nbrs.update(dst[src == uu].tolist())  # uu -> v
+                nbrs.update(src[dst == uu].tolist())  # v  -> uu
+            nbrs.discard(uu)
+            return sorted(int(x) for x in nbrs)
+
+        # --- helper: drop incident edges to `drop_neighbors` (small list) ---
+        def apply_edge_drop_incident(graph, target_node: int, drop_neighbors):
+            g2 = copy.copy(graph)
+            ei = graph.edge_index
+            src, dst = ei
+
+            if drop_neighbors is None:
+                return g2
+            drop = torch.as_tensor(drop_neighbors, device=dst.device, dtype=dst.dtype)
+            if drop.numel() == 0:
+                return g2
+
+            uu = int(target_node)
+            keep = ~(
+                ((src == uu) & torch.isin(dst, drop)) |
+                ((dst == uu) & torch.isin(src, drop))
+            )
+            g2.edge_index = ei[:, keep]
+            return g2
+
+        # --- helper: keep ONLY incident edges to `keep_neighbors` (small list), drop other incident edges ---
+        #     (insertionで「全落とし→一部だけ戻す」を高速に実現)
+        def apply_edge_keep_only_incident(graph, target_node: int, keep_neighbors):
+            g2 = copy.copy(graph)
+            ei = graph.edge_index
+            src, dst = ei
+
+            uu = int(target_node)
+            # まず「incident以外」は全部keep
+            keep = ~((src == uu) | (dst == uu))
+
+            if keep_neighbors is None:
+                g2.edge_index = ei[:, keep]
+                return g2
+
+            kn = torch.as_tensor(keep_neighbors, device=dst.device, dtype=dst.dtype)
+            if kn.numel() == 0:
+                g2.edge_index = ei[:, keep]
+                return g2
+
+            # incidentのうち、相手がkeep_neighborsのものだけ復活
+            keep_inc = ((src == uu) & torch.isin(dst, kn)) | ((dst == uu) & torch.isin(src, kn))
+            keep = keep | keep_inc
+
+            g2.edge_index = ei[:, keep]
+            return g2
+
+        # --- prediction (recompute GCN with modified edge_index) ---
+        def predict(graphs):
+            with torch.no_grad():
+                seq_emb, raw_emb = [], []
+                for g in graphs:
+                    g = g.to(device)
+                    p_x = model.projection_layer(g.x)              # [N,P]
+                    gcn_out = model.gcn_encoder(p_x, g.edge_index) # [N,D]
+                    raw_emb.append(p_x[u].unsqueeze(0))            # [1,P]
+                    seq_emb.append(gcn_out[u].unsqueeze(0))        # [1,D]
+                f_seq = torch.stack(seq_emb, dim=1)                # [1,T,D]
+                f_raw = torch.stack(raw_emb, dim=1)                # [1,T,P]
+                base_t = torch.tensor([float(baseline_score)], dtype=f_seq.dtype, device=device)
+                p, _ = model(f_seq, f_raw, base_t)
+                return float(p.view(-1)[0].item())
+
+        # --- pools ---
+        all_nbrs = collect_incident_neighbors_union(input_graphs, u)
+        if len(all_nbrs) == 0:
+            # no incident edges -> curve is flat
+            orig = predict(input_graphs)
+            k_list = [0]
+            scores_main = np.array([orig], np.float32)
+            rand_mean = np.array([orig], np.float32)
+            rand_std  = np.array([0.0], np.float32)
+            return k_list, scores_main, rand_mean, rand_std, orig, 0
+
+        all_set = set(all_nbrs)
+
+        # ranked (filtered + unique, keep order)
+        ranked = []
+        seen = set()
+        for n in ranked_neighbor_order:
+            nn = int(n)
+            if nn in all_set and nn not in seen:
+                ranked.append(nn)
+                seen.add(nn)
+
+        # main uses topK of ranked
+        top_order = ranked[: int(topK_eval)]
+        K_eval = len(top_order)
+        if K_eval == 0:
+            # rankedが空なら mainも作れないので、ランダムだけ回すより「空で返す」
+            orig = predict(input_graphs)
+            k_list = [0]
+            scores_main = np.array([orig], np.float32)
+            rand_mean = np.array([orig], np.float32)
+            rand_std  = np.array([0.0], np.float32)
+            return k_list, scores_main, rand_mean, rand_std, orig, 0
+
+        k_list = list(range(0, K_eval + 1))
+        orig = predict(input_graphs)
+
+        rng = np.random.RandomState(int(seed))
+
+        # random sampling pool
+        if str(random_pool).lower() == "topk":
+            rand_pool = top_order
+        else:
+            rand_pool = all_nbrs  # ★デフォルト: 全近傍からランダム
+
+        # --- MAIN curve ---
+        scores_main = np.zeros((len(k_list),), dtype=np.float32)
+
+        if mode == "deletion":
+            # start from original; drop k important neighbors (within topK only)
+            for i, k in enumerate(k_list):
+                drop_neighbors = top_order[:k]
+                graphs_m = [apply_edge_drop_incident(g, u, drop_neighbors) for g in input_graphs]
+                scores_main[i] = predict(graphs_m)
+
+        elif mode == "insertion":
+            # start from "all incident removed" and add back k important neighbors (within topK only)
+            for i, k in enumerate(k_list):
+                keep_neighbors = top_order[:k]
+                graphs_m = [apply_edge_keep_only_incident(g, u, keep_neighbors) for g in input_graphs]
+                scores_main[i] = predict(graphs_m)
+
+        else:
+            raise ValueError(f"mode must be 'deletion' or 'insertion', got {mode}")
+
+        # --- RANDOM baseline (mean ± std over trials) ---
+        rand_scores = np.zeros((int(random_trials), len(k_list)), dtype=np.float32)
+
+        for t in range(int(random_trials)):
+            perm = rng.permutation(len(rand_pool))
+            perm_neighbors = [rand_pool[j] for j in perm]  # permutation of pool
+
+            for i, k in enumerate(k_list):
+                if mode == "deletion":
+                    drop_neighbors = perm_neighbors[:k]
+                    graphs_m = [apply_edge_drop_incident(g, u, drop_neighbors) for g in input_graphs]
+                    rand_scores[t, i] = predict(graphs_m)
+
+                else:  # insertion
+                    keep_neighbors = perm_neighbors[:k]
+                    graphs_m = [apply_edge_keep_only_incident(g, u, keep_neighbors) for g in input_graphs]
+                    rand_scores[t, i] = predict(graphs_m)
+
+        rand_mean = rand_scores.mean(axis=0)
+        rand_std  = rand_scores.std(axis=0)
+
+        # 参考: これが欲しければ呼び出し側でprint/logして
+        # print(f"[DI-edge] mode={mode} K_eval={K_eval} all_pool={len(all_nbrs)} rand_pool={len(rand_pool)}")
+
+        return k_list, scores_main, rand_mean, rand_std, orig, K_eval
 
 
     def log_di_plot(k, main, rmean, rstd, title, fname, artifact_path, also_log_csv=True):
@@ -4341,10 +4553,13 @@ def run_experiment(params, graphs_data, target_node_idx, experiment_id=None):
                         baseline_score=float(base_user),
                         ranked_neighbor_order=edge_order,
                         mode="deletion",
-                        random_trials=di_random_trials,
+                        random_trials=int(params.get("DI_RANDOM_TRIALS", 10)),
                         seed=0,
                         device=device,
+                        max_neighbors=int(params.get("DI_EDGE_MAX_NEIGHBORS", 30)),  # ★追加
+                        k_stride=int(params.get("DI_EDGE_K_STRIDE", 1)),             # ★追加
                     )
+
                     fname = f"di_edge_deletion_{tag}_{run_name}.png"
                     log_di_plot(
                         k, main, rmean, rstd,
@@ -4360,11 +4575,14 @@ def run_experiment(params, graphs_data, target_node_idx, experiment_id=None):
                         target_node=int(target_node_global_idx),
                         baseline_score=float(base_user),
                         ranked_neighbor_order=edge_order,
-                        mode="insertion",
-                        random_trials=di_random_trials,
+                        mode="deletion",
+                        random_trials=int(params.get("DI_RANDOM_TRIALS", 10)),
                         seed=0,
                         device=device,
+                        max_neighbors=int(params.get("DI_EDGE_MAX_NEIGHBORS", 30)),  # ★追加
+                        k_stride=int(params.get("DI_EDGE_K_STRIDE", 1)),             # ★追加
                     )
+
                     fname = f"di_edge_insertion_{tag}_{run_name}.png"
                     log_di_plot(
                         k, main, rmean, rstd,
