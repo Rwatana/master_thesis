@@ -131,7 +131,7 @@ RQ1--RQ4の評価は，既に得られている学習済み重み$\Theta$を用�
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.5\linewidth]{figures/exp/exp1-model-prediction.png}
-  \caption{予測スコアと真値スコアの関係（散布図の例）}
+  \caption{予測スコアと真値スコアの関係}
   \label{fig:exp1_model_prediction}
 \end{figure}
 
@@ -149,29 +149,38 @@ InfluencerRank型モデルは，コンテンツの情報を入力コンテンツ
 具体的には，(i) 上位要素が少数に集中しているか，(ii) 多数の要素が0付近に張り付く（飽和する）傾向がないか，
 (iii) 月ごとに分布がどの程度変動するかを観察し，以降の整合性評価の前提を明確にする．
 
-図\ref{fig:exp1_jan}〜図\ref{fig:exp1_mar}に，1月，2月，3月それぞれに対する重要度（importance）の可視化結果を示す．
-（本文では代表として1月・3月を示し，2月は付録に回す運用も可能である．）
+図\ref{fig:feature-importance-jan}〜図\ref{fig:edge-importance-mar}に，1月，3月それぞれに対する重要度（importance）の可視化結果を示す．
 
 \begin{figure}[htbp]
-  \centering
-  \includegraphics[width=0.95\linewidth]{figures/exp1_jan.png}
-  \caption{importanceの上位プロット（1月）}
-  \label{fig:exp1_jan}
+\centering
+\begin{minipage}[b]{0.49\columnwidth}
+    \centering
+    \includegraphics[width=0.9\columnwidth]{figures/importance/top20-feat-pos0.png}
+    \caption{特徴量の削除によるスコア変化（１月）}
+    \label{fig:feature-importance-jan}
+\end{minipage}
+\begin{minipage}[b]{0.49\columnwidth}
+    \centering
+    \includegraphics[width=0.9\columnwidth]{figures/importance/top20-edge-pos0.png}
+    \caption{特徴量の追加によるスコア変化（１月）}
+    \label{fig:edge-importance-jan}
+\end{minipage}
 \end{figure}
 
-% 本文が重い場合は以下を付録へ移動推奨
 \begin{figure}[htbp]
-  \centering
-  \includegraphics[width=0.95\linewidth]{figures/exp1_feb.png}
-  \caption{importanceの上位プロット（2月）}
-  \label{fig:exp1_feb}
-\end{figure}
-
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=0.95\linewidth]{figures/exp1_mar.png}
-  \caption{importanceの上位プロット（3月）}
-  \label{fig:exp1_mar}
+\centering
+\begin{minipage}[b]{0.49\columnwidth}
+    \centering
+    \includegraphics[width=0.9\columnwidth]{figures/importance/top20-feat-pos2.png}
+    \caption{特徴量の削除によるスコア変化（３月）}
+    \label{fig:feature-importance-mar}
+\end{minipage}
+\begin{minipage}[b]{0.49\columnwidth}
+    \centering
+    \includegraphics[width=0.9\columnwidth]{figures/importance/top20-edge-pos2.png}
+    \caption{特徴量の追加によるスコア変化（３月）}
+    \label{fig:edge-importance-mar}
+\end{minipage}
 \end{figure}
 
 \subsection{特徴量：importanceとscore impactの整合}
@@ -208,6 +217,26 @@ InfluencerRank型モデルは，コンテンツの情報を入力コンテンツ
 %   \label{fig:exp1_5_mar}
 % \end{figure}
 
+
+マスクの値とスコアへの影響度をDeletion/Inclusionプロットを作成することでさらに分析する。
+\begin{figure}[htbp]
+\centering
+\begin{minipage}[b]{0.49\columnwidth}
+    \centering
+    \includegraphics[width=0.9\columnwidth]{figures/di/d-feature-pos2.png}
+    \caption{特徴量の削除によるスコア変化（３月）}
+    \label{fig:feature-deletion-mar}
+\end{minipage}
+\begin{minipage}[b]{0.49\columnwidth}
+    \centering
+    \includegraphics[width=0.9\columnwidth]{figures/di/i-feature-pos2.png}
+    \caption{特徴量の追加によるスコア変化（３月）}
+    \label{fig:feature-inclusion-mar}
+\end{minipage}
+\end{figure}
+
+
+
 \subsection{エッジ：importanceと実データの整合}
 エッジの重要度（importance）が高い要素ほど，実際にそのエッジに関連する投稿が多い傾向にあるかを検証する．
 これは「説明が実データに対して有用である」ことの検証（実データとの整合による検証）である．
@@ -241,7 +270,7 @@ InfluencerRank型モデルは，コンテンツの情報を入力コンテンツ
 
 \begin{table}[htbp]
   \centering
-  \caption{最も重要度が高いエッジに関連する投稿（重要度1位）}
+  \caption{最も重要度が高いエッジに関連する投稿（Hashtag）}
   \begin{tabular}{lllll}
     \toprule
     DateTime & Like Count & Rank (Month) & Rank (Year) & Caption \\
@@ -257,7 +286,7 @@ InfluencerRank型モデルは，コンテンツの情報を入力コンテンツ
 
 \begin{table}[htbp]
   \centering
-  \caption{重要度上位エッジに関連する投稿（重要度5位の例）}
+  \caption{重要度上位エッジに関連する投稿（Mention）}
   \begin{tabular}{llllll}
     \toprule
     DateTime & Like Count & Rank (Month) & Rank (Year) & Caption \\
@@ -270,6 +299,27 @@ InfluencerRank型モデルは，コンテンツの情報を入力コンテンツ
   \end{tabular}
   \label{tab:exp1_4_top_5_posts}
 \end{table}
+
+マスクの値とスコアへの影響度をDeletion/Inclusionプロットを作成することでさらに分析する。
+\begin{figure}[htbp]
+\centering
+\begin{minipage}[b]{0.49\columnwidth}
+    \centering
+    \includegraphics[width=0.9\columnwidth]{figures/di/d-edge-pos2.png}
+    \caption{エッジの削除によるスコア変化（３月）}
+    \label{fig:edge-deletion-mar}
+\end{minipage}
+\begin{minipage}[b]{0.49\columnwidth}
+    \centering
+    \includegraphics[width=0.9\columnwidth]{figures/di/i-edge-pos2.png}
+    \caption{エッジの追加によるスコア変化（３月）}
+    \label{fig:edge-inclusion-mar}
+\end{minipage}
+\end{figure}
+
+
+
+
 
 \subsection{小結（RQ2への答え）}
 以上の検証により，importanceは単なる可視化量ではなく，入力介入（score impact）や実データとの整合という観点から，予測に対して一定の忠実性を持つ説明として解釈できる可能性が示された．
